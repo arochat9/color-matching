@@ -233,7 +233,7 @@ private struct BouncyButtonBody: View {
             .padding(.vertical, 14)
             .padding(.horizontal, 18)
             .frame(minHeight: 50)
-            .foregroundStyle(prominent ? Color.white : tint)
+            .foregroundStyle(prominent ? (customTint == nil ? theme.onAccent : Color.white) : tint)
             .background(
                 Capsule().fill(prominent ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(tint.opacity(0.14)))
             )

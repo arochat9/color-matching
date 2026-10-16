@@ -6,6 +6,8 @@ import UIKit
 struct Theme {
     /// Main buttons and controls.
     let accent: Color
+    /// Text and icons on a filled accent button.
+    let onAccent: Color
     /// Stars and the score.
     let star: Color
     /// A match that earns a point.
@@ -25,6 +27,7 @@ struct Theme {
 
     static let sketchbook = Theme(
         accent: Color(light: 0x2E2B28, dark: 0xECE8E1),
+        onAccent: Color(light: 0xFFFFFF, dark: 0x1F1D1B),
         star: Color(light: 0xE0661F, dark: 0xF08A45),
         success: Color(light: 0xE0661F, dark: 0xF08A45),
         info: Color(light: 0x6B655E, dark: 0xA9A29A),
