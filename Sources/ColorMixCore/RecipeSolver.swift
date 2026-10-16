@@ -86,6 +86,54 @@ public struct RecipeSolver: Sendable {
     }
 }
 
+public extension RecipeSolver {
+    /// The closest you can get to `target` by only *adding* paint to `current`, the way real paint works:
+    /// once it's on the palette you can't take it back out. Tries adding up to two paints, in amounts from
+    /// a tenth of the current pile up to twice it (beyond that you'd be better off starting a fresh pile).
+    /// Returns the best ΔE2000.
+    static func bestDeltaEByAdding(to current: Recipe, target: SRGB, palette: [Paint]) -> Double {
+        let targetLab = target.lab
+        let bands = Spectral.bandCount
+        let ks = palette.map { $0.reflectance.map(Mixer.kOverS) }
+        var baseSum = [Double](repeating: 0, count: bands)
+        var baseWeight = 0.0
+        for ingredient in current.ingredients {
+            let w = Double(ingredient.parts) * ingredient.paint.strength
+            let paintKS = ingredient.paint.reflectance.map(Mixer.kOverS)
+            for i in 0..<bands { baseSum[i] += w * paintKS[i] }
+            baseWeight += w
+        }
+        guard baseWeight > 0 else { return .infinity }
+        let total = Double(current.totalParts)
+        let amounts = [0, 0.1, 0.25, 0.5, 1, 1.5, 2].map { $0 * total }
+
+        var best = Double.infinity
+        for a in palette.indices {
+            for b in a..<palette.count {
+                for amountA in amounts {
+                    for amountB in (a == b ? [0] : amounts) {
+                        let wa = amountA * palette[a].strength
+                        let wb = amountB * palette[b].strength
+                        let weight = baseWeight + wa + wb
+                        var x = 0.0, y = 0.0, z = 0.0
+                        for i in 0..<bands {
+                            let mixedKS = (baseSum[i] + wa * ks[a][i] + wb * ks[b][i]) / weight
+                            let r = Mixer.reflectance(fromKOverS: mixedKS)
+                            let w = Spectral.weights[i]
+                            x += w.x * r
+                            y += w.y * r
+                            z += w.z * r
+                        }
+                        let dE = ColorDifference.deltaE2000(targetLab, SRGB(xyz: XYZ(x: x, y: y, z: z)).lab)
+                        best = min(best, dE)
+                    }
+                }
+            }
+        }
+        return best
+    }
+}
+
 /// All k-element index subsets of 0..<n, in lexicographic order.
 func combinations(of n: Int, choose k: Int) -> [[Int]] {
     guard k > 0, k <= n else { return [] }

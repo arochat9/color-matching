@@ -59,22 +59,67 @@ struct ContentView: View {
         .task { await playDemoDropsIfRequested() }
     }
 
-    /// Practice and out-of-reach badges under the goal name.
+    /// Practice badge plus the "can't be mixed" and "point of no return" warnings.
     @ViewBuilder
     private var goalNotes: some View {
-        if model.isPractice || model.goalIsOutOfReach {
-            HStack(spacing: 8) {
-                if model.isPractice {
-                    Label("Practice · no star", systemImage: "graduationcap.fill")
-                        .badgeStyle(.blue)
-                }
-                if model.goalIsOutOfReach {
-                    Label("Beyond this palette", systemImage: "exclamationmark.triangle.fill")
-                        .badgeStyle(.orange)
-                }
-                Spacer()
+        VStack(alignment: .leading, spacing: 10) {
+            if model.isPractice {
+                Label("Practice · no star", systemImage: "graduationcap.fill")
+                    .badgeStyle(.blue)
             }
-            .transition(.opacity.combined(with: .move(edge: .top)))
+            if model.goalIsOutOfReach {
+                WarningCard(
+                    icon: "exclamationmark.triangle.fill",
+                    tint: .orange,
+                    title: "Can't be mixed with the \(model.palette.name.lowercased())",
+                    message: "This color is more vivid than any mix of these paints. Best possible: \(Int(Scoring.matchPercent(deltaE: model.goalReach).rounded()))%."
+                ) {
+                    paletteSwitcher
+                }
+            } else if model.isPastPointOfNoReturn {
+                WarningCard(
+                    icon: "arrow.uturn.backward.circle.fill",
+                    tint: .red,
+                    title: "Past the point of no return",
+                    message: "\(noReturnReason) Adding more paint can't get this pile to 90%, even doubling it. With real paint you'd start a fresh pile."
+                ) {
+                    Button("Start fresh") { withAnimation(.spring(duration: 0.4)) { model.clearMix() } }
+                        .buttonStyle(BouncyButtonStyle(tint: .red))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(.spring(duration: 0.4), value: model.goalIsOutOfReach)
+        .animation(.spring(duration: 0.4), value: model.isPastPointOfNoReturn)
+    }
+
+    /// Why the mix can't come back, from its biggest difference with the goal.
+    private var noReturnReason: String {
+        guard let mix = model.mixColor else { return "" }
+        let g = mix.lab, t = model.challenge.target.lab
+        if g.l - t.l > 4 { return "It's too light, and darkening it now would make it too dull." }
+        if g.chroma < t.chroma - 4 { return "It's too dull, and paint can only get duller as you mix." }
+        if g.l - t.l < -4 { return "It's too dark, and lightening it now would wash it out." }
+        return "The hue has drifted too far."
+    }
+
+    private var paletteSwitcher: some View {
+        Menu {
+            ForEach(model.paletteReach(), id: \.palette.id) { option in
+                Button {
+                    withAnimation(.spring(duration: 0.4)) { model.switchPalette(to: option.palette) }
+                } label: {
+                    Text("\(option.palette.name): up to \(Int(option.percent.rounded()))%")
+                }
+                .disabled(option.palette.id == model.paletteID)
+            }
+        } label: {
+            Label("Switch palette", systemImage: "paintpalette.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(Color.orange.gradient))
         }
     }
 
@@ -130,7 +175,7 @@ struct ContentView: View {
                 Label("Submit", systemImage: "paintbrush.pointed.fill").frame(maxWidth: .infinity)
             }
             .buttonStyle(BouncyButtonStyle(tint: .accentColor, prominent: true))
-            .disabled(model.currentRecipe.isEmpty)
+            .disabled(model.currentRecipe.isEmpty || model.isSolving)
             Button(model.isPractice ? "Random" : "Skip") { withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.nextRound() } }
                 .buttonStyle(BouncyButtonStyle(tint: .accentColor))
         }
@@ -342,5 +387,31 @@ private extension View {
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(tint.opacity(0.14), in: Capsule())
+    }
+}
+
+/// A tinted callout with an action, for warnings about the current mix.
+struct WarningCard<Action: View>: View {
+    let icon: String
+    let tint: Color
+    let title: String
+    let message: String
+    @ViewBuilder let action: () -> Action
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: icon)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(tint)
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            action()
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .transition(.scale(scale: 0.9).combined(with: .opacity))
     }
 }

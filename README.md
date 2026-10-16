@@ -12,6 +12,11 @@ paints, and the ratio between them, that would have made the goal.
    - your match percentage (from the CIEDE2000 color difference; 90% is ΔE 3, "very close"),
    - hints on value, saturation and hue,
    - the **simplest recipe**: fewest paints and their whole-number ratio, like `3 Titanium White : 1 Cadmium Red`.
+While you mix, the app warns you when:
+
+- the goal **can't be mixed** with your palette at all (with a button to switch to a palette that gets closer), or
+- your pile is **past the point of no return**: adding paint, even doubling the pile, can't get it to 90%. Real paint can't be taken back out, so this is when you'd start fresh.
+
 4. Every round you finish at 90% or better adds one point to your lifetime score (the star, saved on the phone).
 
 The swatch button (top right) opens the **color library**: every named color, grouped by hue and searchable.
@@ -21,6 +26,7 @@ The palette menu (top right) switches between:
 
 - **Limited palette**: titanium white, ivory black, cadmium yellow, cadmium red, ultramarine blue, yellow ochre, burnt umber.
   This is the usual starting kit for painters.
+- **Extended palette**: the limited palette plus phthalo blue, quinacridone magenta and lemon yellow, for clean greens, pinks and purples.
 - **Primaries**: red, yellow, blue, white, black.
 - **Zorn palette**: white, black, yellow ochre, cadmium red.
 

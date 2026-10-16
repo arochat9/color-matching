@@ -60,6 +60,30 @@ public extension Paint {
         strength: 0.8,
         reflectance: Spectral.curve { Spectral.sigmoid($0, center: 600, width: 40, low: 0.04, high: 0.22) }
     )
+
+    static let phthaloBlue = Paint(
+        id: "phthalo-blue", name: "Phthalo Blue", note: "Very strong, clean cyan-leaning blue",
+        strength: 1.6,
+        reflectance: Spectral.curve {
+            0.015 + 0.42 * Spectral.lobe($0, center: 468, left: 22, right: 36)
+                + Spectral.sigmoid($0, center: 680, width: 10, low: 0, high: 0.03)
+        }
+    )
+
+    static let quinacridoneMagenta = Paint(
+        id: "quinacridone-magenta", name: "Quinacridone Magenta", note: "Clean cool magenta for pinks and purples",
+        strength: 1.2,
+        reflectance: Spectral.curve {
+            Spectral.sigmoid($0, center: 605, width: 14, low: 0.03, high: 0.72)
+                + 0.32 * Spectral.lobe($0, center: 405, left: 20, right: 25)
+        }
+    )
+
+    static let lemonYellow = Paint(
+        id: "lemon-yellow", name: "Lemon Yellow", note: "Cool yellow for bright greens",
+        strength: 0.9,
+        reflectance: Spectral.curve { Spectral.sigmoid($0, center: 495, width: 11, low: 0.05, high: 0.9) }
+    )
 }
 
 /// A starting set of paints, the way painters set up a palette.
@@ -101,5 +125,13 @@ public extension Palette {
         paints: [.titaniumWhite, .ivoryBlack, .yellowOchre, .cadmiumRed]
     )
 
-    static let all: [Palette] = [.limited, .primaries, .zorn]
+    /// The limited palette plus three vivid tubes, for clean greens, pinks and purples.
+    static let extended = Palette(
+        id: "extended",
+        name: "Extended palette",
+        summary: "Limited palette plus phthalo blue, quinacridone magenta and lemon yellow.",
+        paints: Palette.limited.paints + [.phthaloBlue, .quinacridoneMagenta, .lemonYellow]
+    )
+
+    static let all: [Palette] = [.limited, .extended, .primaries, .zorn]
 }

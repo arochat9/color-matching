@@ -40,7 +40,13 @@ final class GameModel: ObservableObject {
         didSet { updateGoalName() }
     }
     @Published private(set) var goalName: GoalName?
-    @Published private(set) var parts: [String: Int] = [:]
+    @Published private(set) var parts: [String: Int] = [:] {
+        didSet { scheduleRecoveryCheck() }
+    }
+    /// Best ΔE still reachable by only adding paint to the current mix. Large means you've gone past
+    /// the point of no return (usually too light or too dull) and should start a fresh pile.
+    @Published private(set) var recoveryDeltaE: Double?
+    @Published private(set) var isSolving = false
     @Published var result: RoundResult?
     @Published private(set) var lifetimeScore: Int
     @Published private(set) var roundScored = false
@@ -50,7 +56,11 @@ final class GameModel: ObservableObject {
     @Published private(set) var goalReach: Double = 0
 
     private var rng: SplitMix64
-    private let solver = RecipeSolver()
+    private var solver: RecipeSolver {
+        // Big palettes get 3-paint recipes so submitting stays quick.
+        RecipeSolver(maxPaints: palette.paints.count > 7 ? 3 : 4)
+    }
+    private var recoveryTask: Task<Void, Never>?
     private let persistScore: Bool
 
     var palette: Palette { Palette.all.first { $0.id == paletteID } ?? .limited }
@@ -98,9 +108,12 @@ final class GameModel: ObservableObject {
         }
     }()
 
+    private static let gamutLock = NSLock()
     private static var gamuts: [String: PaletteGamut] = [:]
 
     private static func gamut(for palette: Palette) -> PaletteGamut {
+        gamutLock.lock()
+        defer { gamutLock.unlock() }
         if let cached = gamuts[palette.id] { return cached }
         let gamut = PaletteGamut(palette: palette.paints)
         gamuts[palette.id] = gamut
@@ -124,13 +137,14 @@ final class GameModel: ObservableObject {
 
     private func updateGoalName() {
         goalName = GoalName(challenge: challenge)
-        goalReach = challenge.sourceRecipe == nil
-            ? GameModel.gamut(for: palette).distance(to: challenge.target)
-            : 0
+        // A goal mixed from paints you have is reachable by construction; anything else gets measured.
+        let ownPaints = Set(palette.paints.map(\.id))
+        let mixedFromOwnPaints = challenge.sourceRecipe?.ingredients.allSatisfy { ownPaints.contains($0.paint.id) } ?? false
+        goalReach = mixedFromOwnPaints ? 0 : GameModel.gamut(for: palette).distance(to: challenge.target)
     }
 
     /// True when no mix of this palette gets within "close" range of the goal.
-    var goalIsOutOfReach: Bool { goalReach > 6 }
+    var goalIsOutOfReach: Bool { goalReach > 4 }
 
     func parts(of paint: Paint) -> Int { parts[paint.id] ?? 0 }
 
@@ -152,8 +166,19 @@ final class GameModel: ObservableObject {
     }
 
     func submit() {
-        guard let guess = mixColor,
-              let solved = solver.solve(for: challenge.target, palette: palette.paints) else { return }
+        guard let guess = mixColor, !isSolving else { return }
+        isSolving = true
+        let solver = self.solver, target = challenge.target, paints = palette.paints
+        Task.detached(priority: .userInitiated) {
+            let solved = solver.solve(for: target, palette: paints)
+            await MainActor.run {
+                self.isSolving = false
+                if let solved { self.finishSubmit(guess: guess, solved: solved) }
+            }
+        }
+    }
+
+    private func finishSubmit(guess: SRGB, solved: (simplest: Solution, closest: Solution)) {
         let match = Scoring.evaluate(target: challenge.target, guess: guess)
         // A round can earn at most one point, however many times you resubmit.
         let earned = match.counts && !roundScored && !isPractice
@@ -183,6 +208,48 @@ final class GameModel: ObservableObject {
         roundScored = false
         isPractice = false
         challenge = GameModel.makeChallenge(palette: palette, mode: goalMode, rng: &rng)
+    }
+
+    /// Whether this palette could reach the goal at all, ignoring the current mix.
+    var paletteCanReachGoal: Bool { !goalIsOutOfReach }
+
+    /// The current mix can no longer get to 90% by adding paint, though a fresh pile could.
+    var isPastPointOfNoReturn: Bool {
+        guard let recovery = recoveryDeltaE, paletteCanReachGoal else { return false }
+        return recovery > 3
+    }
+
+    /// How close each palette can get to the current goal, best first, as match percentages.
+    func paletteReach() -> [(palette: Palette, percent: Double)] {
+        Palette.all
+            .map { ($0, Scoring.matchPercent(deltaE: GameModel.gamut(for: $0).distance(to: challenge.target))) }
+            .sorted { $0.1 > $1.1 }
+    }
+
+    func switchPalette(to palette: Palette) {
+        // Keep the same goal; only the paints change.
+        let goal = challenge
+        let practice = isPractice
+        paletteID = palette.id
+        challenge = goal
+        isPractice = practice
+        parts = [:]
+    }
+
+    private func scheduleRecoveryCheck() {
+        recoveryTask?.cancel()
+        let recipe = currentRecipe, target = challenge.target, paints = palette.paints
+        guard !recipe.isEmpty else {
+            recoveryDeltaE = nil
+            return
+        }
+        recoveryTask = Task.detached(priority: .utility) { [weak self] in
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            let best = RecipeSolver.bestDeltaEByAdding(to: recipe, target: target, palette: paints)
+            guard !Task.isCancelled else { return }
+            await MainActor.run { self?.recoveryDeltaE = best }
+        }
     }
 
     /// Mix a specific color from the library. It's practice, so it doesn't count toward the score.

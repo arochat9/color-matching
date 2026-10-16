@@ -144,3 +144,25 @@ final class QualifierTests: XCTestCase {
         XCTAssertNil(ColorNameIndex.qualifier(of: Lab(l: 51, a: 41, b: 0), relativeTo: named))
     }
 }
+
+final class RecoveryTests: XCTestCase {
+    func testCanRecoverByAddingMoreOfTheMissingPaint() {
+        let target = Recipe([Ingredient(paint: .cadmiumRed, parts: 1), Ingredient(paint: .titaniumWhite, parts: 1)]).color!
+        let current = Recipe([Ingredient(paint: .cadmiumRed, parts: 1)])
+        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 1)
+    }
+
+    func testTooMuchWhiteCannotBeUndone() {
+        // A deep red can't be reached once the pile is mostly white.
+        let target = Paint.cadmiumRed.color
+        let current = Recipe([Ingredient(paint: .cadmiumRed, parts: 1), Ingredient(paint: .titaniumWhite, parts: 10)])
+        XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
+    }
+
+    func testExtendedPaletteReachesBrighterGreens() {
+        let green = SRGB(hex: "#15B01A")!
+        let limited = PaletteGamut(palette: Palette.limited.paints).distance(to: green)
+        let extended = PaletteGamut(palette: Palette.extended.paints).distance(to: green)
+        XCTAssertLessThan(extended, limited)
+    }
+}
