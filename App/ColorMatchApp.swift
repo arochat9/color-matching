@@ -32,7 +32,9 @@ struct ColorMatchApp: App {
             model.setParts(Recipe(ingredients))
         }
         if demo == "noreturn" {
-            // Far too much white for the goal: shows the point-of-no-return warning.
+            // Far too much white for straight-from-the-tube ultramarine: shows the point-of-no-return warning.
+            let ultramarine = Recipe([Ingredient(paint: .ultramarineBlue, parts: 1)])
+            model.setDemoChallenge(Challenge(target: Paint.ultramarineBlue.color, sourceRecipe: ultramarine))
             model.setParts(Recipe([Ingredient(paint: .ultramarineBlue, parts: 1), Ingredient(paint: .titaniumWhite, parts: 12)]))
         }
         if demo == "neon", let neon = GameModel.colorNames.colors.first(where: { $0.name == "Neon Green" }) {
