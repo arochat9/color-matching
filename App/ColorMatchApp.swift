@@ -3,12 +3,40 @@ import SwiftUI
 @main
 struct ColorMatchApp: App {
     @StateObject private var model = ColorMatchApp.makeModel()
+    @StateObject private var theory = ColorMatchApp.makeTheoryModel()
+    @State private var tab = UserDefaults.standard.string(forKey: "demo")?.hasPrefix("theory") == true ? Tab.theory : .mix
+
+    enum Tab { case mix, theory }
 
     var body: some Scene {
         WindowGroup {
-            ContentView(model: model)
-                .themed(.sketchbook)
+            TabView(selection: $tab) {
+                ContentView(model: model)
+                    .tabItem { Label("Mix", systemImage: "paintbrush.pointed.fill") }
+                    .tag(Tab.mix)
+                TheoryView(model: theory)
+                    .tabItem { Label("Theory", systemImage: "camera.filters") }
+                    .tag(Tab.theory)
+            }
+            .themed(.sketchbook)
         }
+    }
+
+    /// `-demo theory-fit|theory-fit-answered|theory-hue|theory-hue-answered` and `-seed N`, for CI screenshots.
+    private static func makeTheoryModel() -> TheoryModel {
+        let defaults = UserDefaults.standard
+        guard let demo = defaults.string(forKey: "demo"), demo.hasPrefix("theory") else { return TheoryModel() }
+        let model = TheoryModel(seed: UInt64(max(defaults.integer(forKey: "seed"), 1)))
+        if demo.hasPrefix("theory-hue") {
+            model.mode = .hue
+            // Close but not quite, so the result shows tips.
+            let target = model.huePuzzle.target
+            model.pick = WheelColor(hue: target.hue + 14, saturation: target.saturation - 0.15, brightness: target.brightness + 0.05)
+            if demo == "theory-hue-answered" { model.submitHue() }
+        } else if demo == "theory-fit-answered", let wrong = model.fitPuzzle.options.first(where: { $0.kind == .offTone }) {
+            model.choose(wrong)
+        }
+        return model
     }
 
     /// Launch arguments used by CI to take repeatable screenshots:

@@ -33,6 +33,18 @@ The palette menu (top right) switches between two kinds of goals:
 - **Named colors**: any of the 134 painter colors (Cerulean Blue, Burnt Sienna, Payne's Grey, ...).
 - **Any hex code**: fully random. Some can't be matched, which teaches you the palette's limits.
 
+## Color theory tab
+
+A separate tab for color harmony, taught on the painter's (red-yellow-blue) wheel, where red sits opposite green:
+
+- **Best fit**: a set of colors is a harmony with one color missing. Pick which of five options belongs.
+  One option has the right hue but a clashing tone (too bright for a soft set, say), so tone counts too.
+- **Find the hue**: a set with one color missing, and a color picker limited to one hue family ("find the
+  green that fits"). You're scored on hue and tone, with tips like "12° too far toward blue-green".
+
+After each answer the app names the rule (complementary, analogous, split complementary, triadic or square),
+explains it, and shows the set on the wheel. The harmony math is in `Sources/ColorMixCore/Harmony.swift`.
+
 ## How mixing works
 
 Each paint is a reflectance curve from 400 to 700 nm. Mixes are computed with Kubelka–Munk
