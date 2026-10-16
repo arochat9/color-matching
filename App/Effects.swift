@@ -78,6 +78,7 @@ struct SplashView: View {
                         .frame(width: d.size, height: d.size)
                         // Hidden until the drop lands, then they fly out and shrink away.
                         .scaleEffect(phase == .burst ? 0.05 : 1)
+                        .animation(.easeIn(duration: 0.65), value: phase)
                         .opacity(phase == .burst ? 1 : 0)
                         .position(
                             x: center.x + (phase == .burst ? cos(d.angle) * d.distance : 0),
