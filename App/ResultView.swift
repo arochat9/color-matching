@@ -5,44 +5,72 @@ struct ResultView: View {
     let onTryAgain: () -> Void
     let onNext: () -> Void
 
+    /// Animated stand-in for the match percentage so it counts up when the sheet opens.
+    @State private var shownPercent = 0.0
+    @State private var revealed = false
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                header
-                splitSwatch
-                feedback
-                RecipeCard(
-                    title: "Simplest recipe",
-                    subtitle: "Fewest paints that reach the goal",
-                    solution: result.simplest
-                )
-                if result.closest.recipe != result.simplest.recipe,
-                   result.closest.deltaE < result.simplest.deltaE - 0.3 {
+        ZStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
+                    splitSwatch.reveal(revealed, order: 1)
+                    feedback.reveal(revealed, order: 2)
                     RecipeCard(
-                        title: "Closest recipe",
-                        subtitle: "\(result.closest.recipe.paintCount) paints, a touch more accurate",
-                        solution: result.closest
+                        title: "Simplest recipe",
+                        subtitle: "Fewest paints that reach the goal",
+                        solution: result.simplest
                     )
+                    .reveal(revealed, order: 3)
+                    if result.closest.recipe != result.simplest.recipe,
+                       result.closest.deltaE < result.simplest.deltaE - 0.3 {
+                        RecipeCard(
+                            title: "Closest recipe",
+                            subtitle: "\(result.closest.recipe.paintCount) paints, a touch more accurate",
+                            solution: result.closest
+                        )
+                        .reveal(revealed, order: 4)
+                    }
+                    yourRecipe.reveal(revealed, order: 5)
+                    buttons.reveal(revealed, order: 6)
                 }
-                yourRecipe
-                buttons
+                .padding()
             }
-            .padding()
+            if result.match.counts {
+                ConfettiView(colors: confettiColors)
+                    .ignoresSafeArea()
+            }
         }
+        .fontDesign(.rounded)
+        .sensoryFeedback(.success, trigger: revealed) { _, now in now && result.match.counts }
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.0)) { shownPercent = result.match.matchPercent }
+            revealed = true
+        }
+    }
+
+    private var confettiColors: [Color] {
+        [result.target.swiftUIColor, .orange, .yellow, .pink, .mint]
+            + result.simplest.recipe.ingredients.map { $0.paint.color.swiftUIColor }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
-                Text("\(Int(result.match.matchPercent.rounded()))%")
-                    .font(.system(size: 56, weight: .bold, design: .rounded))
-                    .foregroundStyle(result.match.counts ? Color.green : Color.primary)
+                Text("\(Int(shownPercent.rounded()))%")
+                    .font(.system(size: 64, weight: .heavy, design: .rounded))
+                    .foregroundStyle(result.match.counts ? AnyShapeStyle(Color.green.gradient) : AnyShapeStyle(Color.primary))
+                    .contentTransition(.numericText(value: shownPercent))
                 Text("match").font(.title3).foregroundStyle(.secondary)
                 Spacer()
                 if result.scoredPoint {
                     Label("+1", systemImage: "star.fill")
-                        .font(.title3.weight(.bold))
+                        .font(.title2.weight(.heavy))
                         .foregroundStyle(.orange)
+                        .symbolEffect(.bounce, value: revealed)
+                        .scaleEffect(revealed ? 1 : 0.2)
+                        .rotationEffect(.degrees(revealed ? 0 : -40))
+                        .animation(.spring(duration: 0.6, bounce: 0.6).delay(0.9), value: revealed)
                 }
             }
             if let name = result.targetName {
@@ -66,8 +94,8 @@ struct ResultView: View {
                 SwatchLabel(text: "Yours \(result.guess.hex)")
             }
         }
-        .frame(height: 110)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .frame(height: 120)
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
     }
 
     private var feedback: some View {
@@ -86,19 +114,18 @@ struct ResultView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 16))
+        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     private var buttons: some View {
         HStack(spacing: 12) {
             Button("Try again", action: onTryAgain)
-                .buttonStyle(.bordered)
+                .buttonStyle(BouncyButtonStyle())
             Button(action: onNext) {
-                Text("Next color").frame(maxWidth: .infinity)
+                Label("Next color", systemImage: "arrow.right").frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(BouncyButtonStyle(prominent: true))
         }
-        .controlSize(.large)
     }
 }
 
@@ -128,9 +155,9 @@ struct RecipeCard: View {
                     Text(subtitle).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(solution.color.swiftUIColor)
-                    .frame(width: 44, height: 44)
+                PaintBlob(seed: 7)
+                    .fill(solution.color.swiftUIColor.gradient)
+                    .frame(width: 48, height: 48)
             }
             RecipeList(recipe: solution.recipe)
             Text(String(format: "Ratio %@ · ΔE %.1f from the goal", ratio, solution.deltaE))
@@ -139,7 +166,7 @@ struct RecipeCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 16))
+        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     private var ratio: String {
@@ -154,10 +181,10 @@ struct RecipeList: View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(recipe.ingredients, id: \.paint.id) { ingredient in
                 HStack(spacing: 10) {
-                    Circle()
-                        .fill(ingredient.paint.color.swiftUIColor)
-                        .overlay(Circle().strokeBorder(.quaternary))
-                        .frame(width: 22, height: 22)
+                    PaintBlob(seed: ingredient.paint.blobSeed)
+                        .fill(ingredient.paint.color.swiftUIColor.gradient)
+                        .overlay(PaintBlob(seed: ingredient.paint.blobSeed).stroke(.black.opacity(0.08), lineWidth: 1))
+                        .frame(width: 26, height: 26)
                     Text(ingredient.paint.name)
                     Spacer()
                     Text("\(ingredient.parts) \(ingredient.parts == 1 ? "part" : "parts")")
@@ -170,5 +197,15 @@ struct RecipeList: View {
                 .font(.subheadline)
             }
         }
+    }
+}
+
+private extension View {
+    /// Slides content up into place, one section after another.
+    func reveal(_ shown: Bool, order: Int) -> some View {
+        self
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown ? 0 : 24)
+            .animation(.spring(duration: 0.5, bounce: 0.3).delay(0.15 + Double(order) * 0.08), value: shown)
     }
 }
