@@ -69,7 +69,7 @@ struct HarmonyWheel: View {
 
     /// 0° at the top, going clockwise.
     static func point(hue: Double, center: CGPoint, radius: CGFloat) -> CGPoint {
-        let angle = hue * .pi / 180
+        let angle = CGFloat(hue * .pi / 180)
         return CGPoint(x: center.x + radius * sin(angle), y: center.y - radius * cos(angle))
     }
 
@@ -101,14 +101,14 @@ struct ToneSquare: View {
                     .overlay(Circle().strokeBorder(.white, lineWidth: 3))
                     .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
                     .frame(width: 30, height: 30)
-                    .position(x: saturation * geo.size.width, y: (1 - brightness) * geo.size.height)
+                    .position(x: CGFloat(saturation) * geo.size.width, y: CGFloat(1 - brightness) * geo.size.height)
             }
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0).onChanged { value in
-                    saturation = min(max(value.location.x / geo.size.width, 0), 1)
-                    brightness = 1 - min(max(value.location.y / geo.size.height, 0), 1)
+                    saturation = Double(min(max(value.location.x / geo.size.width, 0), 1))
+                    brightness = Double(1 - min(max(value.location.y / geo.size.height, 0), 1))
                 }
             )
         }
@@ -143,12 +143,12 @@ struct HueStrip: View {
                     .overlay(Circle().strokeBorder(.white, lineWidth: 3))
                     .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
                     .frame(width: 34, height: 34)
-                    .position(x: (position - range.lowerBound) / span * geo.size.width, y: geo.size.height / 2)
+                    .position(x: CGFloat((position - range.lowerBound) / span) * geo.size.width, y: geo.size.height / 2)
             }
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0).onChanged { value in
-                    let t = min(max(value.location.x / geo.size.width, 0), 1)
+                    let t = Double(min(max(value.location.x / geo.size.width, 0), 1))
                     hue = range.lowerBound + t * span
                 }
             )
