@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @ObservedObject var model: GameModel
     @State private var splashes: [Splash] = []
+    @State private var showLibrary = false
 
     var body: some View {
         NavigationStack {
@@ -14,6 +15,7 @@ struct ContentView: View {
                         mix: model.mixColor,
                         splashes: splashes
                     )
+                    goalNotes
                     MixBar(recipe: model.currentRecipe)
                     paintList
                     actions
@@ -27,8 +29,21 @@ struct ContentView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     ScoreBadge(score: model.lifetimeScore)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        showLibrary = true
+                    } label: {
+                        Image(systemName: "swatchpalette.fill")
+                            .symbolRenderingMode(.multicolor)
+                            .font(.title3)
+                    }
+                    .accessibilityLabel("Color library")
                     settingsMenu
+                }
+            }
+            .navigationDestination(isPresented: $showLibrary) {
+                ColorLibraryView { color in
+                    withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.practice(color) }
                 }
             }
             .sheet(item: $model.result) { result in
@@ -42,6 +57,25 @@ struct ContentView: View {
             }
         }
         .task { await playDemoDropsIfRequested() }
+    }
+
+    /// Practice and out-of-reach badges under the goal name.
+    @ViewBuilder
+    private var goalNotes: some View {
+        if model.isPractice || model.goalIsOutOfReach {
+            HStack(spacing: 8) {
+                if model.isPractice {
+                    Label("Practice · no star", systemImage: "graduationcap.fill")
+                        .badgeStyle(.blue)
+                }
+                if model.goalIsOutOfReach {
+                    Label("Beyond this palette", systemImage: "exclamationmark.triangle.fill")
+                        .badgeStyle(.orange)
+                }
+                Spacer()
+            }
+            .transition(.opacity.combined(with: .move(edge: .top)))
+        }
     }
 
     /// A soft wash of the goal color behind everything.
@@ -97,7 +131,7 @@ struct ContentView: View {
             }
             .buttonStyle(BouncyButtonStyle(tint: .accentColor, prominent: true))
             .disabled(model.currentRecipe.isEmpty)
-            Button("Skip") { withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.nextRound() } }
+            Button(model.isPractice ? "Random" : "Skip") { withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.nextRound() } }
                 .buttonStyle(BouncyButtonStyle(tint: .accentColor))
         }
     }
@@ -297,4 +331,15 @@ struct PaintRow: View {
     private var isVeryLight: Bool { paint.color.lab.l > 85 }
     private var plusCircle: Color { isVeryLight ? Color.gray.opacity(0.5) : paint.color.swiftUIColor }
     private var plusGlyph: Color { .white }
+}
+
+private extension View {
+    func badgeStyle(_ tint: Color) -> some View {
+        self
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(tint.opacity(0.14), in: Capsule())
+    }
 }

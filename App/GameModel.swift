@@ -12,6 +12,11 @@ struct RoundResult: Identifiable {
     let closest: Solution
     /// True when this submission added a point to the lifetime score.
     let scoredPoint: Bool
+    /// A color picked from the library: practice only, never scores.
+    let isPractice: Bool
+
+    /// The best match the palette can reach at all; below 100% when the goal is outside the palette.
+    var bestPossiblePercent: Double { Scoring.matchPercent(deltaE: closest.deltaE) }
 }
 
 final class GameModel: ObservableObject {
@@ -39,6 +44,10 @@ final class GameModel: ObservableObject {
     @Published var result: RoundResult?
     @Published private(set) var lifetimeScore: Int
     @Published private(set) var roundScored = false
+    /// True while mixing a color picked from the library. Practice rounds never earn a star.
+    @Published private(set) var isPractice = false
+    /// How far (ΔE) the goal is from anything the palette can mix; large means it can't be matched.
+    @Published private(set) var goalReach: Double = 0
 
     private var rng: SplitMix64
     private let solver = RecipeSolver()
@@ -77,6 +86,18 @@ final class GameModel: ObservableObject {
         return ColorNameIndex(csv: csv).colors
     }
 
+    /// Every named color grouped by hue, for the color library.
+    static let librarySections: [(family: String, colors: [NamedColor])] = {
+        let order = ["red", "orange", "yellow", "green", "teal", "blue", "purple", "magenta", "neutral"]
+        let groups = Dictionary(grouping: colorNames.colors) { color in
+            color.lab.chroma < 10 ? "neutral" : Scoring.hueFamily(color.lab.hue)
+        }
+        return order.compactMap { family in
+            guard let colors = groups[family] else { return nil }
+            return (family, colors.sorted { $0.lab.l > $1.lab.l })
+        }
+    }()
+
     private static var gamuts: [String: PaletteGamut] = [:]
 
     private static func gamut(for palette: Palette) -> PaletteGamut {
@@ -91,8 +112,9 @@ final class GameModel: ObservableObject {
         case .anyHex:
             return ChallengeGenerator.anyHex(using: &rng)
         case .named:
-            if let named = ChallengeGenerator.named(names: colorNames, gamut: gamut(for: palette), using: &rng) {
-                return named
+            // Any name from the full list, including ones the palette can't quite reach.
+            if let named = colorNames.randomElement(using: &rng) {
+                return Challenge(target: named.color, name: named.name)
             }
             return ChallengeGenerator.reachable(palette: palette.paints, using: &rng)
         case .mixable:
@@ -102,7 +124,13 @@ final class GameModel: ObservableObject {
 
     private func updateGoalName() {
         goalName = GoalName(challenge: challenge)
+        goalReach = challenge.sourceRecipe == nil
+            ? GameModel.gamut(for: palette).distance(to: challenge.target)
+            : 0
     }
+
+    /// True when no mix of this palette gets within "close" range of the goal.
+    var goalIsOutOfReach: Bool { goalReach > 6 }
 
     func parts(of paint: Paint) -> Int { parts[paint.id] ?? 0 }
 
@@ -128,7 +156,7 @@ final class GameModel: ObservableObject {
               let solved = solver.solve(for: challenge.target, palette: palette.paints) else { return }
         let match = Scoring.evaluate(target: challenge.target, guess: guess)
         // A round can earn at most one point, however many times you resubmit.
-        let earned = match.counts && !roundScored
+        let earned = match.counts && !roundScored && !isPractice
         if earned {
             roundScored = true
             lifetimeScore += 1
@@ -144,7 +172,8 @@ final class GameModel: ObservableObject {
             match: match,
             simplest: solved.simplest,
             closest: solved.closest,
-            scoredPoint: earned
+            scoredPoint: earned,
+            isPractice: isPractice
         )
     }
 
@@ -152,7 +181,17 @@ final class GameModel: ObservableObject {
         result = nil
         parts = [:]
         roundScored = false
+        isPractice = false
         challenge = GameModel.makeChallenge(palette: palette, mode: goalMode, rng: &rng)
+    }
+
+    /// Mix a specific color from the library. It's practice, so it doesn't count toward the score.
+    func practice(_ color: NamedColor) {
+        result = nil
+        parts = [:]
+        roundScored = false
+        isPractice = true
+        challenge = Challenge(target: color.color, name: color.name)
     }
 }
 

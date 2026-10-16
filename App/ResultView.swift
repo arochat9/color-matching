@@ -80,6 +80,19 @@ struct ResultView: View {
             Text(String(format: "ΔE2000 %.1f · 90%% or better earns a point", result.match.deltaE))
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            if result.isPractice {
+                Label("Practice round, so no star", systemImage: "graduationcap.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.blue)
+            }
+            if result.closest.deltaE > 2 {
+                Label(
+                    "Best possible with this palette: \(Int(result.bestPossiblePercent.rounded()))%. This color is outside what these paints can mix.",
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            }
         }
     }
 

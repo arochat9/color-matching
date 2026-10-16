@@ -14,6 +14,9 @@ paints, and the ratio between them, that would have made the goal.
    - the **simplest recipe**: fewest paints and their whole-number ratio, like `3 Titanium White : 1 Cadmium Red`.
 4. Every round you finish at 90% or better adds one point to your lifetime score (the star, saved on the phone).
 
+The swatch button (top right) opens the **color library**: every named color, grouped by hue and searchable.
+Tap one to practice mixing it. Practice rounds don't earn stars.
+
 The palette menu (top right) switches between:
 
 - **Limited palette**: titanium white, ivory black, cadmium yellow, cadmium red, ultramarine blue, yellow ochre, burnt umber.
@@ -24,7 +27,7 @@ The palette menu (top right) switches between:
 and between three kinds of goals:
 
 - **Mixable colors**: always reachable with your palette, shown with the closest color name.
-- **Named colors**: pigment and common color names (Cerulean, Burnt Sienna, Sky Blue, ...) that your palette can get close to.
+- **Named colors**: any of the ~1,000 pigment and common color names (Cerulean, Burnt Sienna, Sky Blue, ...). Some, like neon green, are brighter than any mix of real paint, and the app says so.
 - **Any hex code**: fully random. Some can't be matched, which teaches you the palette's limits.
 
 ## How mixing works
