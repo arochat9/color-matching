@@ -14,6 +14,9 @@ paints, and the ratio between them, that would have made the goal.
    - the **simplest recipe**: fewest paints and their whole-number ratio, like `3 Titanium White : 1 Cadmium Red`.
 4. Every round you finish at 90% or better adds one point to your lifetime score (the star, saved on the phone).
 
+The swatch button (top right) opens the **color library**: every named color, grouped by hue and searchable.
+Tap one to practice mixing it. Practice rounds don't earn stars.
+
 The palette menu (top right) switches between:
 
 - **Limited palette**: titanium white, ivory black, cadmium yellow, cadmium red, ultramarine blue, yellow ochre, burnt umber.
@@ -24,7 +27,7 @@ The palette menu (top right) switches between:
 and between three kinds of goals:
 
 - **Mixable colors**: always reachable with your palette, shown with the closest color name.
-- **Named colors**: real named colors (cerulean, lemon yellow, ...) that your palette can get close to.
+- **Named colors**: any of the ~1,000 pigment and common color names (Cerulean, Burnt Sienna, Sky Blue, ...). Some, like neon green, are brighter than any mix of real paint, and the app says so.
 - **Any hex code**: fully random. Some can't be matched, which teaches you the palette's limits.
 
 ## How mixing works
@@ -34,8 +37,10 @@ theory on those curves, so they behave like pigment: blue and yellow make green,
 make olive, and white lowers saturation as it lightens. RGB averaging gets all of these wrong.
 The paint curves are hand-tuned approximations, not measured data for a specific brand.
 
-Color names come from [meodai/color-names](https://github.com/meodai/color-names) (MIT, ~32k names),
-in `App/Resources/colornames.csv`.
+Each goal is labelled with its nearest color name, such as "Close to Cerulean (lighter, duller)".
+Names come from two lists in `App/Resources`: `pigmentnames.csv`, ~210 hand-picked pigment and classic
+paint names (Burnt Sienna, Payne's Grey, Viridian, ...), and `xkcdnames.csv`, the ~800 other common names
+from the [XKCD color survey](https://xkcd.com/color/rgb/) (CC0), where 200k people named colors.
 
 ## Project layout
 
