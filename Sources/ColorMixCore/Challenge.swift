@@ -14,23 +14,6 @@ public struct Challenge: Hashable, Sendable {
     }
 }
 
-/// What kind of goal colors to deal.
-public enum GoalMode: String, CaseIterable, Identifiable, Sendable {
-    /// A real named color (cerulean, lemon yellow, ...). Some are brighter than any paint mix.
-    case named
-    /// Any random hex code. Some can't be reached with the palette.
-    case anyHex
-
-    public var id: String { rawValue }
-
-    public var title: String {
-        switch self {
-        case .named: return "Named colors"
-        case .anyHex: return "Any hex code"
-        }
-    }
-}
-
 public enum ChallengeGenerator {
     /// A goal that is guaranteed to be mixable: 2–3 random paints from the palette in random parts.
     public static func reachable<R: RandomNumberGenerator>(palette: [Paint], using rng: inout R) -> Challenge {
@@ -48,15 +31,6 @@ public enum ChallengeGenerator {
             if l > 18 && l < 95 { return challenge }
         }
         return fallback ?? Challenge(target: SRGB(r: 0.5, g: 0.5, b: 0.5))
-    }
-
-    /// Any hex color at all. Some will be impossible to hit with the palette, which is a lesson in itself.
-    public static func anyHex<R: RandomNumberGenerator>(using rng: inout R) -> Challenge {
-        Challenge(target: SRGB(
-            r: Double(Int.random(in: 0...255, using: &rng)) / 255,
-            g: Double(Int.random(in: 0...255, using: &rng)) / 255,
-            b: Double(Int.random(in: 0...255, using: &rng)) / 255
-        ))
     }
 }
 
@@ -90,11 +64,11 @@ public enum Scoring {
 
     public static func verdict(deltaE: Double) -> String {
         switch deltaE {
-        case ..<1: return "Perfect. The difference is invisible."
-        case ..<3: return "Very close. Only a trained eye would notice."
-        case ..<6: return "Close, but you can see the difference side by side."
-        case ..<12: return "In the neighborhood."
-        default: return "Clearly a different color."
+        case ..<1: return "Perfect"
+        case ..<3: return "Very close"
+        case ..<6: return "Close"
+        case ..<12: return "Getting there"
+        default: return "Way off"
         }
     }
 
@@ -103,16 +77,16 @@ public enum Scoring {
         var notes: [String] = []
         let dL = g.l - t.l
         if dL > 3 {
-            notes.append("Too light. Use less white, or add a touch of a darker paint.")
+            notes.append("Too light: use less white")
         } else if dL < -3 {
-            notes.append("Too dark. Add white, or use less black and umber.")
+            notes.append("Too dark: add white")
         }
 
         let dC = g.chroma - t.chroma
         if dC > 4 {
-            notes.append("Too vivid. Dull it with its complement, black, or an earth color.")
+            notes.append("Too vivid: add a touch of its complement")
         } else if dC < -4 {
-            notes.append("Too dull. Use more of the pure colors and less black or umber.")
+            notes.append("Too dull: less black, more pure color")
         }
 
         if t.chroma > 8 && g.chroma > 8 {
@@ -120,16 +94,16 @@ public enum Scoring {
             if dh > 180 { dh -= 360 } else if dh < -180 { dh += 360 }
             let goalFamily = hueFamily(t.hue), yourFamily = hueFamily(g.hue)
             if goalFamily != yourFamily {
-                notes.append("Hue: the goal is \(goalFamily), yours is \(yourFamily).")
+                notes.append("Wrong hue: goal is \(goalFamily), yours is \(yourFamily)")
             } else if abs(dh) > 6 {
                 let toward = hueFamily(t.hue - (dh > 0 ? 25 : -25))
-                notes.append("Hue is a little off. Nudge it toward \(toward).")
+                notes.append("Hue slightly off: nudge toward \(toward)")
             }
         } else if t.chroma <= 8 && g.chroma > 12 {
-            notes.append("The goal is nearly a neutral gray; yours has too much color in it.")
+            notes.append("Too colorful: the goal is nearly gray")
         }
 
-        if notes.isEmpty { notes.append("Value, saturation and hue all line up.") }
+        if notes.isEmpty { notes.append("Lightness, color and hue all line up") }
         return notes
     }
 

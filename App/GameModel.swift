@@ -44,13 +44,6 @@ final class GameModel: ObservableObject {
     /// The extra tube picked for this goal, if any.
     @Published private(set) var extraPaint: Paint?
     @Published private(set) var palette: Palette
-    @Published var goalMode: GoalMode {
-        didSet {
-            guard goalMode != oldValue else { return }
-            UserDefaults.standard.set(goalMode.rawValue, forKey: "goalMode")
-            nextRound()
-        }
-    }
     @Published private(set) var challenge: Challenge {
         didSet { updateGoalName() }
     }
@@ -95,7 +88,6 @@ final class GameModel: ObservableObject {
 
     init(seed: UInt64? = nil, persistScore: Bool = true) {
         let defaults = UserDefaults.standard
-        let mode = defaults.string(forKey: "goalMode").flatMap(GoalMode.init(rawValue:)) ?? .named
         var rng = SplitMix64(seed: seed ?? UInt64.random(in: 0...UInt64.max))
         let all = Set(DynamicPalette.allPaints.map(\.id))
         let saved = (defaults.stringArray(forKey: GameModel.tubesKey) ?? []).filter(all.contains)
@@ -106,8 +98,7 @@ final class GameModel: ObservableObject {
         self.tubeIDs = tubes
         self.autoExtra = autoExtra
         self.palette = palette
-        self.goalMode = mode
-        self.challenge = GameModel.makeChallenge(palette: palette, mode: mode, rng: &rng)
+        self.challenge = GameModel.makeChallenge(palette: palette, rng: &rng)
         self.rng = rng
         self.persistScore = persistScore
         self.lifetimeScore = persistScore ? defaults.integer(forKey: GameModel.lifetimeScoreKey) : 0
@@ -148,17 +139,12 @@ final class GameModel: ObservableObject {
         return gamut
     }
 
-    private static func makeChallenge(palette: Palette, mode: GoalMode, rng: inout SplitMix64) -> Challenge {
-        switch mode {
-        case .anyHex:
-            return ChallengeGenerator.anyHex(using: &rng)
-        case .named:
-            // Any name from the full list, including ones the palette can't quite reach.
-            if let named = colorNames.randomElement(using: &rng) {
-                return Challenge(target: named.color, name: named.name)
-            }
-            return ChallengeGenerator.reachable(palette: palette.paints, using: &rng)
+    private static func makeChallenge(palette: Palette, rng: inout SplitMix64) -> Challenge {
+        // Any name from the full list, including ones the palette can't quite reach.
+        if let named = colorNames.randomElement(using: &rng) {
+            return Challenge(target: named.color, name: named.name)
         }
+        return ChallengeGenerator.reachable(palette: palette.paints, using: &rng)
     }
 
     private func updateGoalName() {
@@ -287,7 +273,7 @@ final class GameModel: ObservableObject {
         goalReach = 0
         roundScored = false
         isPractice = false
-        challenge = GameModel.makeChallenge(palette: palette, mode: goalMode, rng: &rng)
+        challenge = GameModel.makeChallenge(palette: palette, rng: &rng)
     }
 
     /// Swaps in a specific goal without touching the score state (used by the screenshot demos).

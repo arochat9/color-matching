@@ -195,11 +195,6 @@ struct ContentView: View {
 
     private var settingsMenu: some View {
         Menu {
-            Picker("Goals", selection: $model.goalMode) {
-                ForEach(GoalMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
-                }
-            }
             Button {
                 showPalette = true
             } label: {
