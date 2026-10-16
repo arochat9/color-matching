@@ -16,7 +16,7 @@ struct PaletteView: View {
                     Toggle(isOn: $model.autoExtra) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Add a tube for each goal")
-                            Text("When your paints can't quite reach a goal, the tube that gets closest joins for that round.")
+                            Text("The tube that gets closest to each goal joins your paints for that round.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

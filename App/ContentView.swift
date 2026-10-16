@@ -13,7 +13,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 12) {
                     SwatchComparison(
                         goal: model.challenge.target,
                         goalName: model.goalName,
@@ -24,9 +24,17 @@ struct ContentView: View {
                     goalNotes
                     MixBar(recipe: model.currentRecipe)
                     paintList
-                    actions
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.top, 4)
+            }
+            // Submit stays on screen, however many paints you've set out.
+            .safeAreaInset(edge: .bottom) {
+                actions
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+                    .background(theme.canvas)
             }
             .background(backdrop)
             .navigationTitle("Color Match")
@@ -132,19 +140,19 @@ struct ContentView: View {
     private var paintList: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Your paints").font(.headline)
+                Text("Your paints").font(.subheadline.weight(.semibold))
                 Spacer()
                 Button {
                     showPalette = true
                 } label: {
                     Label("Change", systemImage: "slider.horizontal.3")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.footnote.weight(.semibold))
                 }
                 .buttonStyle(.borderless)
             }
             .padding(.horizontal, 16)
-            .padding(.top, 10)
-            .padding(.bottom, 4)
+            .padding(.top, 8)
+            .padding(.bottom, 2)
             ForEach(model.palette.paints) { paint in
                 PaintRow(
                     paint: paint,
@@ -154,7 +162,7 @@ struct ContentView: View {
                     onRemove: { withAnimation(.easeInOut(duration: 0.3)) { model.remove(paint) } }
                 )
                 if paint.id != model.palette.paints.last?.id {
-                    Divider().padding(.leading, 64)
+                    Divider().padding(.leading, 56)
                 }
             }
         }
@@ -249,7 +257,7 @@ struct SwatchComparison: View {
         VStack(alignment: .leading, spacing: 10) {
             if let goalName {
                 Text(goalName.headline)
-                    .font(.title2.weight(.bold))
+                    .font(.title3.weight(.bold))
                     .id(goalName.headline)
                     .transition(.push(from: .trailing).combined(with: .opacity))
             }
@@ -275,7 +283,7 @@ struct Swatch: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.headline).foregroundStyle(theme.accent)
+            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(theme.accent)
             ZStack {
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .fill(color?.swiftUIColor ?? Color.secondary.opacity(0.12))
@@ -302,7 +310,7 @@ struct Swatch: View {
                 }
             }
             .zIndex(1)
-            .frame(height: 160)
+            .frame(height: 112)
             .phaseAnimator([1.0, 1.06, 0.98, 1.0], trigger: dropCount) { content, scale in
                 content.scaleEffect(scale)
             } animation: { _ in
@@ -351,7 +359,7 @@ struct PaintRow: View {
                 PaintBlob(seed: paint.blobSeed)
                     .fill(paint.color.swiftUIColor.gradient)
                     .overlay(PaintBlob(seed: paint.blobSeed).stroke(.black.opacity(0.08), lineWidth: 1))
-                    .frame(width: 44, height: 44)
+                    .frame(width: 32, height: 32)
                     .phaseAnimator([1.0, 1.25, 0.95, 1.0], trigger: parts) { content, scale in
                         content.scaleEffect(scale)
                     } animation: { _ in
@@ -360,7 +368,7 @@ struct PaintRow: View {
             }
             .accessibilityLabel("Add a part of \(paint.name)")
             VStack(alignment: .leading, spacing: 1) {
-                Text(paint.name).font(.body.weight(.semibold))
+                Text(paint.name).font(.subheadline.weight(.semibold))
                 if isPickedForGoal {
                     Label("Added for this color", systemImage: "sparkles")
                         .font(.caption2.weight(.semibold))
@@ -369,23 +377,23 @@ struct PaintRow: View {
             }
             Spacer(minLength: 8)
             Button(action: onRemove) {
-                Image(systemName: "minus.circle.fill").font(.title2)
+                Image(systemName: "minus.circle.fill").font(.title3)
             }
             .disabled(parts == 0)
             Text("\(parts)")
-                .font(.title3.monospacedDigit().weight(.bold))
+                .font(.body.monospacedDigit().weight(.bold))
                 .contentTransition(.numericText(value: Double(parts)))
                 .frame(minWidth: 28)
             Button(action: onAdd) {
                 Image(systemName: "plus.circle.fill")
-                    .font(.title)
+                    .font(.title2)
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(plusGlyph, plusCircle)
             }
         }
         .buttonStyle(.borderless)
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.vertical, 4)
         .sensoryFeedback(.impact(weight: .light), trigger: parts)
     }
 
