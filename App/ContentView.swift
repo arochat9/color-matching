@@ -82,20 +82,8 @@ struct ContentView: View {
         }
     }
 
-    /// The theme's canvas. The original look keeps its soft wash of the goal color.
-    @ViewBuilder
     private var backdrop: some View {
-        if theme.id == Theme.system.id {
-            LinearGradient(
-                colors: [model.challenge.target.swiftUIColor.opacity(0.28), theme.canvas],
-                startPoint: .top,
-                endPoint: .center
-            )
-            .ignoresSafeArea()
-            .animation(.easeInOut(duration: 0.6), value: model.challenge.target)
-        } else {
-            theme.canvas.ignoresSafeArea()
-        }
+        theme.canvas.ignoresSafeArea()
     }
 
     private func addDrop(of paint: Paint) {
