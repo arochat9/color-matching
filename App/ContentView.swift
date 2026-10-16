@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var model: GameModel
+    /// Back to the home page.
+    var onHome: (() -> Void)?
     @State private var splashes: [Splash] = []
     @State private var showLibrary = false
     @AppStorage("showWarnings") private var showWarnings = true
@@ -28,6 +30,9 @@ struct ContentView: View {
             .navigationTitle("Color Match")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if let onHome { HomeButton(action: onHome) }
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     ScoreBadge(score: model.lifetimeScore)
                 }
