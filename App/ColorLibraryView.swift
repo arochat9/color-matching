@@ -47,6 +47,9 @@ struct ColorLibraryView: View {
         }
         .navigationTitle("Color library")
         .navigationBarTitleDisplayMode(.inline)
+        // An opaque bar, so the pinned section headers meet it instead of floating over scrolling tiles.
+        .toolbarBackground(theme.canvas, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .searchable(text: $search, prompt: "Search names or hex")
         .safeAreaInset(edge: .bottom) {
             Text("Tap a color to practice mixing it. Practice rounds don't earn stars.")

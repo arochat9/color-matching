@@ -152,6 +152,14 @@ final class RecoveryTests: XCTestCase {
         XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 1)
     }
 
+    func testOnePartOfAStrongPaintIsNotPastNoReturn() {
+        // One part of rose is a fine start for a pale pink: you just need a lot of white.
+        let target = Recipe([Ingredient(paint: .permanentRose, parts: 1), Ingredient(paint: .titaniumWhite, parts: 12)]).color!
+        let current = Recipe([Ingredient(paint: .permanentRose, parts: 1)])
+        let palette = DynamicPalette.palette(with: .permanentRose).paints
+        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: palette), 1.5)
+    }
+
     func testTooMuchWhiteCannotBeUndone() {
         // Deep ultramarine can't be reached once the pile is mostly white (the no-return demo's mix).
         let target = Paint.ultramarineBlue.color

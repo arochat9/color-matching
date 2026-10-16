@@ -3,7 +3,10 @@ import SwiftUI
 struct ContentView: View {
     @ObservedObject var model: GameModel
     @State private var splashes: [Splash] = []
+    /// Only ever goes up, so the swatch jiggles once per drop (not again when a splash is cleaned up).
+    @State private var dropCount = 0
     @State private var showLibrary = false
+    @State private var showPalette = false
     @AppStorage("showWarnings") private var showWarnings = true
     @Environment(\.theme) private var theme
 
@@ -15,7 +18,8 @@ struct ContentView: View {
                         goal: model.challenge.target,
                         goalName: model.goalName,
                         mix: model.mixColor,
-                        splashes: splashes
+                        splashes: splashes,
+                        dropCount: dropCount
                     )
                     goalNotes
                     MixBar(recipe: model.currentRecipe)
@@ -30,6 +34,8 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     ScoreBadge(score: model.lifetimeScore)
+                        .fixedSize()
+                        .padding(.horizontal, 6)
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
@@ -48,6 +54,12 @@ struct ContentView: View {
                     withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.practice(color) }
                 }
                 .background(theme.canvas.ignoresSafeArea())
+            }
+            .sheet(isPresented: $showPalette) {
+                PaletteView(model: model)
+                    .themed(theme)
+                    .presentationBackground(theme.canvas)
+                    .presentationDetents([.medium, .large])
             }
             .sheet(item: $model.result) { result in
                 ResultView(
@@ -107,6 +119,7 @@ struct ContentView: View {
     private func addDrop(of paint: Paint) {
         let splash = Splash(color: paint.color.swiftUIColor)
         splashes.append(splash)
+        dropCount += 1
         withAnimation(.easeInOut(duration: 0.45).delay(0.18)) {
             model.add(paint)
         }
@@ -118,11 +131,25 @@ struct ContentView: View {
 
     private var paintList: some View {
         VStack(spacing: 0) {
+            HStack {
+                Text("Your paints").font(.headline)
+                Spacer()
+                Button {
+                    showPalette = true
+                } label: {
+                    Label("Change", systemImage: "slider.horizontal.3")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .padding(.bottom, 4)
             ForEach(model.palette.paints) { paint in
                 PaintRow(
                     paint: paint,
                     parts: model.parts(of: paint),
-                    isPickedForGoal: paint.id == model.extraPaint.id,
+                    isPickedForGoal: paint.id == model.extraPaint?.id,
                     onAdd: { addDrop(of: paint) },
                     onRemove: { withAnimation(.easeInOut(duration: 0.3)) { model.remove(paint) } }
                 )
@@ -158,6 +185,11 @@ struct ContentView: View {
                 ForEach(GoalMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
+            }
+            Button {
+                showPalette = true
+            } label: {
+                Label("Change paints…", systemImage: "slider.horizontal.3")
             }
             Toggle("Mixing warnings", isOn: $showWarnings)
         } label: {
@@ -211,6 +243,7 @@ struct SwatchComparison: View {
     let goalName: GoalName?
     let mix: SRGB?
     let splashes: [Splash]
+    let dropCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -224,7 +257,7 @@ struct SwatchComparison: View {
                 Swatch(title: "Goal", color: goal, caption: goal.hex)
                     .id(goal.hex)
                     .transition(.scale(scale: 0.6).combined(with: .opacity))
-                Swatch(title: "Your mix", color: mix, caption: mix?.hex ?? "Tap + to add paint", splashes: splashes)
+                Swatch(title: "Your mix", color: mix, caption: mix?.hex ?? "Tap + to add paint", splashes: splashes, dropCount: dropCount)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -236,10 +269,9 @@ struct Swatch: View {
     let color: SRGB?
     let caption: String
     var splashes: [Splash] = []
-    @Environment(\.theme) private var theme
-
     /// Bumps each time a drop lands so the swatch can jiggle.
-    private var dropCount: Int { splashes.count }
+    var dropCount = 0
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -256,7 +288,13 @@ struct Swatch: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(.white.opacity(0.35), lineWidth: 1))
-            .shadow(color: (color?.swiftUIColor ?? .clear).opacity(0.45), radius: 14, y: 8)
+            // A glow drawn once as a blurred shape behind the swatch, cheaper than .shadow while it jiggles.
+            .background {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill((color?.swiftUIColor ?? .clear).opacity(0.45))
+                    .offset(y: 8)
+                    .blur(radius: 14)
+            }
             // Splashes sit outside the clip so droplets can fly past the edge.
             .overlay {
                 ForEach(splashes) { splash in

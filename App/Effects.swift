@@ -15,6 +15,7 @@ struct SplashView: View {
     let splash: Splash
 
     private enum Phase { case falling, landed, burst }
+    static let overflow: CGFloat = 130
     @State private var phase = Phase.falling
 
     private struct Droplet {
@@ -54,11 +55,10 @@ struct SplashView: View {
                     .overlay(alignment: .bottomLeading) {
                         Circle().fill(.white.opacity(0.7)).frame(width: 6, height: 6).offset(x: 5, y: -7)
                     }
-                    .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
                     .frame(width: 26, height: 36)
                     .scaleEffect(phase == .burst ? 0.2 : 1)
                     .opacity(phase == .burst ? 0 : 1)
-                    .position(x: center.x, y: phase == .falling ? -20 : center.y)
+                    .position(x: center.x, y: phase == .falling ? SplashView.overflow - 20 : center.y)
 
                 // The splat in the middle.
                 PaintBlob(seed: splash.seed)
@@ -74,7 +74,6 @@ struct SplashView: View {
                     Circle()
                         .fill(splash.color)
                         .overlay(Circle().stroke(.white.opacity(0.85), lineWidth: 1.5))
-                        .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
                         .frame(width: d.size, height: d.size)
                         // Hidden until the drop lands, then they fly out and shrink away.
                         .scaleEffect(phase == .burst ? 0.05 : 1)
@@ -87,6 +86,10 @@ struct SplashView: View {
                 }
             }
         }
+        // Flattened into one Metal layer: ~16 shapes animating per drop is a lot for the compositor.
+        // The layer reaches past the swatch so droplets can still fly beyond its edge.
+        .drawingGroup()
+        .padding(-SplashView.overflow)
         .allowsHitTesting(false)
         .onAppear {
             withAnimation(.easeIn(duration: 0.22)) {
