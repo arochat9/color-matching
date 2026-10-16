@@ -18,6 +18,11 @@ struct ColorMatchApp: App {
         guard let demo = defaults.string(forKey: "demo") else { return GameModel() }
         let seed = UInt64(max(defaults.integer(forKey: "seed"), 1))
         let model = GameModel(seed: seed, persistScore: false)
+        if defaults.string(forKey: "goalMode") == nil {
+            // Screenshots of the mixing screen read best with a goal the palette can actually hit.
+            var rng = SplitMix64(seed: seed)
+            model.setDemoChallenge(ChallengeGenerator.reachable(palette: model.palette.paints, using: &rng))
+        }
         if demo != "drops", let source = model.challenge.sourceRecipe {
             // Start from the true recipe, then nudge it so the demo shows a near miss with feedback.
             var ingredients = source.ingredients

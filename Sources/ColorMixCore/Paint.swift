@@ -102,36 +102,21 @@ public struct Palette: Identifiable, Hashable, Sendable {
 }
 
 public extension Palette {
-    /// The classic beginner's limited palette: the three primaries plus white, black and two earths.
+    /// The standard beginner's palette: the three primaries plus white, black and two earths.
     static let limited = Palette(
         id: "limited",
-        name: "Limited palette",
+        name: "Standard palette",
         summary: "Primaries + white, black, ochre and umber. The usual starting kit.",
         paints: [.titaniumWhite, .ivoryBlack, .cadmiumYellow, .cadmiumRed, .ultramarineBlue, .yellowOchre, .burntUmber]
-    )
-
-    static let primaries = Palette(
-        id: "primaries",
-        name: "Primaries",
-        summary: "Red, yellow, blue, white and black only.",
-        paints: [.titaniumWhite, .ivoryBlack, .cadmiumYellow, .cadmiumRed, .ultramarineBlue]
-    )
-
-    /// Anders Zorn's famous four-color palette, great for skin tones.
-    static let zorn = Palette(
-        id: "zorn",
-        name: "Zorn palette",
-        summary: "White, black, ochre and red. Black plays the role of blue.",
-        paints: [.titaniumWhite, .ivoryBlack, .yellowOchre, .cadmiumRed]
     )
 
     /// The limited palette plus three vivid tubes, for clean greens, pinks and purples.
     static let extended = Palette(
         id: "extended",
         name: "Extended palette",
-        summary: "Limited palette plus phthalo blue, quinacridone magenta and lemon yellow.",
+        summary: "Standard palette plus phthalo blue, quinacridone magenta and lemon yellow.",
         paints: Palette.limited.paints + [.phthaloBlue, .quinacridoneMagenta, .lemonYellow]
     )
 
-    static let all: [Palette] = [.limited, .extended, .primaries, .zorn]
+    static let all: [Palette] = [.limited, .extended]
 }

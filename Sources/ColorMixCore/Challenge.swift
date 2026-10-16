@@ -16,9 +16,7 @@ public struct Challenge: Hashable, Sendable {
 
 /// What kind of goal colors to deal.
 public enum GoalMode: String, CaseIterable, Identifiable, Sendable {
-    /// Mixed from the palette, so always reachable. Shown with its nearest color name.
-    case mixable
-    /// A real named color (cerulean, lemon yellow, ...) that the palette can get close to.
+    /// A real named color (cerulean, lemon yellow, ...). Some are brighter than any paint mix.
     case named
     /// Any random hex code. Some can't be reached with the palette.
     case anyHex
@@ -27,7 +25,6 @@ public enum GoalMode: String, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
-        case .mixable: return "Mixable colors"
         case .named: return "Named colors"
         case .anyHex: return "Any hex code"
         }

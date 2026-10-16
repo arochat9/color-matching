@@ -74,7 +74,7 @@ final class GameModel: ObservableObject {
     init(seed: UInt64? = nil, persistScore: Bool = true) {
         let defaults = UserDefaults.standard
         let paletteID = defaults.string(forKey: "paletteID") ?? Palette.limited.id
-        let mode = defaults.string(forKey: "goalMode").flatMap(GoalMode.init(rawValue:)) ?? .mixable
+        let mode = defaults.string(forKey: "goalMode").flatMap(GoalMode.init(rawValue:)) ?? .named
         var rng = SplitMix64(seed: seed ?? UInt64.random(in: 0...UInt64.max))
         let palette = Palette.all.first { $0.id == paletteID } ?? .limited
         self.paletteID = palette.id
@@ -129,8 +129,6 @@ final class GameModel: ObservableObject {
             if let named = colorNames.randomElement(using: &rng) {
                 return Challenge(target: named.color, name: named.name)
             }
-            return ChallengeGenerator.reachable(palette: palette.paints, using: &rng)
-        case .mixable:
             return ChallengeGenerator.reachable(palette: palette.paints, using: &rng)
         }
     }
@@ -208,6 +206,11 @@ final class GameModel: ObservableObject {
         roundScored = false
         isPractice = false
         challenge = GameModel.makeChallenge(palette: palette, mode: goalMode, rng: &rng)
+    }
+
+    /// Swaps in a specific goal without touching the score state (used by the screenshot demos).
+    func setDemoChallenge(_ demo: Challenge) {
+        challenge = demo
     }
 
     /// Whether this palette could reach the goal at all, ignoring the current mix.

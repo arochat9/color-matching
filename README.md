@@ -24,15 +24,12 @@ Tap one to practice mixing it. Practice rounds don't earn stars.
 
 The palette menu (top right) switches between:
 
-- **Limited palette**: titanium white, ivory black, cadmium yellow, cadmium red, ultramarine blue, yellow ochre, burnt umber.
+- **Standard palette**: titanium white, ivory black, cadmium yellow, cadmium red, ultramarine blue, yellow ochre, burnt umber.
   This is the usual starting kit for painters.
-- **Extended palette**: the limited palette plus phthalo blue, quinacridone magenta and lemon yellow, for clean greens, pinks and purples.
-- **Primaries**: red, yellow, blue, white, black.
-- **Zorn palette**: white, black, yellow ochre, cadmium red.
+- **Extended palette**: the standard palette plus phthalo blue, quinacridone magenta and lemon yellow, for clean greens, pinks and purples.
 
-and between three kinds of goals:
+and between two kinds of goals:
 
-- **Mixable colors**: always reachable with your palette, shown with the closest color name.
 - **Named colors**: any of the ~1,000 pigment and common color names (Cerulean, Burnt Sienna, Sky Blue, ...). Some, like neon green, are brighter than any mix of real paint, and the app says so.
 - **Any hex code**: fully random. Some can't be matched, which teaches you the palette's limits.
 
