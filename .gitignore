@@ -10,3 +10,5 @@ fastlane/report.xml
 fastlane/README.md
 *.ipa
 *.dSYM.zip
+fastlane/.env
+*.p8

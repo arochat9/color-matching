@@ -2,46 +2,94 @@ require "base64"
 
 default_platform(:ios)
 
+# Uses the same App Store Connect API key as fitcheck. The IDs come from fastlane/.env
+# (gitignored; copy .env.example) or the environment, and the .p8 itself from
+# ~/.appstoreconnect/private_keys/ on your Mac or the ASC_KEY_CONTENT secret in CI.
 APP_ID = "com.arochat9.ColorMatch"
+TEAM_ID = ENV.fetch("APPLE_TEAM_ID")
+KEY_ID = ENV.fetch("ASC_KEY_ID")
+ISSUER_ID = ENV.fetch("ASC_ISSUER_ID")
 ROOT = File.expand_path("..", __dir__)
 
+def key_content
+  content = ENV["ASC_KEY_CONTENT"].to_s
+  return File.read(File.expand_path("~/.appstoreconnect/private_keys/AuthKey_#{KEY_ID}.p8")) if content.empty?
+  content.include?("BEGIN PRIVATE KEY") ? content : Base64.decode64(content)
+end
+
+def asc_api_key
+  app_store_connect_api_key(key_id: KEY_ID, issuer_id: ISSUER_ID, key_content: key_content)
+end
+
+def take_screenshots
+  sh(File.join(ROOT, "scripts/app_store_screenshots.sh"), File.join(__dir__, "screenshots/en-US"))
+end
+
 platform :ios do
-  desc "One time: register the bundle ID and create the app in App Store Connect."
-  desc "Run on a Mac with your Apple ID (FASTLANE_USER); Apple's API key can't create apps."
-  lane :create_app do
-    produce(
+  desc "One time: register the bundle ID and check the App Store Connect app record exists."
+  desc "Apple's API can't create app records, so if it's missing this says what to click."
+  lane :setup do
+    asc_api_key
+    if Spaceship::ConnectAPI::BundleId.find(APP_ID)
+      UI.message("Bundle ID #{APP_ID} already registered")
+    else
+      Spaceship::ConnectAPI::BundleId.create(name: "Color Match", identifier: APP_ID, platform: "IOS")
+      UI.success("Registered bundle ID #{APP_ID}")
+    end
+    if Spaceship::ConnectAPI::App.find(APP_ID)
+      UI.success("App record exists")
+    else
+      name = File.read(File.join(__dir__, "metadata/en-US/name.txt")).strip
+      UI.important("No App Store Connect app yet. Create it at appstoreconnect.apple.com > Apps > + > New App")
+      UI.important("with name \"#{name}\", bundle ID #{APP_ID}, SKU colormatch-ios.")
+    end
+  end
+
+  desc "Push App Store Connect metadata (description, URLs, copyright, rating) — no build, no screenshots"
+  lane :metadata do
+    deliver(
+      api_key: asc_api_key,
       app_identifier: APP_ID,
-      app_name: File.read(File.join(__dir__, "metadata/en-US/name.txt")).strip,
-      language: "en-US",
-      app_version: "1.0",
-      sku: "colormatch-ios",
-      team_id: ENV["APPLE_TEAM_ID"]
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      app_rating_config_path: File.join(__dir__, "rating_config.json"),
+      force: true,
+      run_precheck_before_submit: false
     )
   end
 
-  desc "Build, upload to TestFlight, push the store listing and screenshots,"
-  desc "and optionally submit for review. Options: version:1.0 submit:true"
+  desc "Take fresh simulator screenshots and push them (skips text metadata + build)"
+  lane :screenshots do
+    take_screenshots
+    deliver(
+      api_key: asc_api_key,
+      app_identifier: APP_ID,
+      skip_binary_upload: true,
+      skip_metadata: true,
+      overwrite_screenshots: true,
+      force: true,
+      run_precheck_before_submit: false
+    )
+  end
+
+  desc "Build, upload to TestFlight, push the listing and fresh screenshots, and optionally"
+  desc "submit for review. Options: version:1.0 submit:true"
   lane :release do |options|
     version = (options[:version] || "1.0").to_s.sub(/^v/, "")
     submit = options[:submit].to_s == "true"
-    team_id = ENV.fetch("APPLE_TEAM_ID")
+    api_key = asc_api_key
 
-    key_content = ENV.fetch("ASC_KEY_CONTENT")
-    key_content = Base64.decode64(key_content) unless key_content.include?("BEGIN PRIVATE KEY")
-    api_key = app_store_connect_api_key(
-      key_id: ENV.fetch("ASC_KEY_ID"),
-      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
-      key_content: key_content
-    )
-
-    # xcodebuild needs the key as a file to sign with cloud-managed certificates.
-    key_path = File.join(ROOT, "build", "AuthKey.p8")
+    # xcodebuild needs the key as a file to sign headlessly with Apple's cloud-managed
+    # distribution certificate (no Xcode account or manual certificates).
+    key_path = File.join(ROOT, "build", "AuthKey_#{KEY_ID}.p8")
     FileUtils.mkdir_p(File.dirname(key_path))
     File.write(key_path, key_content)
     auth = "-allowProvisioningUpdates -authenticationKeyPath #{key_path} " \
-           "-authenticationKeyID #{ENV['ASC_KEY_ID']} -authenticationKeyIssuerID #{ENV['ASC_ISSUER_ID']}"
+           "-authenticationKeyID #{KEY_ID} -authenticationKeyIssuerID #{ISSUER_ID}"
 
+    # Highest build on App Store Connect + 1, so build numbers never collide.
     build_number = latest_testflight_build_number(api_key: api_key, app_identifier: APP_ID, initial_build_number: 0) + 1
+    UI.message("Building #{version} (#{build_number})")
 
     build_app(
       project: File.join(ROOT, "ColorMatch.xcodeproj"),
@@ -49,15 +97,17 @@ platform :ios do
       configuration: "Release",
       export_method: "app-store",
       output_directory: File.join(ROOT, "build"),
-      xcargs: "#{auth} DEVELOPMENT_TEAM=#{team_id} CODE_SIGN_STYLE=Automatic " \
+      xcargs: "#{auth} DEVELOPMENT_TEAM=#{TEAM_ID} CODE_SIGN_STYLE=Automatic " \
               "MARKETING_VERSION=#{version} CURRENT_PROJECT_VERSION=#{build_number}",
       export_xcargs: auth,
-      export_options: { signingStyle: "automatic", teamID: team_id }
+      export_options: { signingStyle: "automatic", teamID: TEAM_ID, uploadSymbols: true }
     )
 
-    # Submitting needs the build processed, so only wait when we're going to submit.
+    # Internal testers get every processed build automatically. Submitting needs the
+    # build processed, so only wait when we're going to submit.
     upload_to_testflight(api_key: api_key, skip_waiting_for_build_processing: !submit)
 
+    take_screenshots
     deliver(
       api_key: api_key,
       app_identifier: APP_ID,

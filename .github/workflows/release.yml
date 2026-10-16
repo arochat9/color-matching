@@ -1,5 +1,7 @@
 name: Release
 
+# Same as `fastlane release` on your Mac, for when you'd rather not use it.
+# Needs secrets APPLE_TEAM_ID, ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_CONTENT (the .p8 key's text).
 # Push a tag like v1.0 to build, upload to TestFlight, update the store listing and
 # screenshots, and submit for review. Run it by hand to stop at TestFlight instead.
 on:
@@ -29,9 +31,6 @@ jobs:
         with:
           ruby-version: "3.3"
           bundler-cache: true
-
-      - name: Take App Store screenshots
-        run: scripts/app_store_screenshots.sh fastlane/screenshots/en-US
 
       - name: Build and upload
         env:

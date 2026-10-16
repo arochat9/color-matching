@@ -1,36 +1,44 @@
 # Releasing to the App Store
 
-Releases are automatic: push a tag and GitHub Actions builds the app, uploads it to TestFlight,
-updates the store listing and screenshots, and submits it for review.
+Same setup as fitcheck: fastlane on your Mac, signed with the App Store Connect API key in
+`~/.appstoreconnect/private_keys/` (Apple's cloud-managed certificates, nothing to manage by hand).
 
 ```sh
-git tag v1.0 && git push origin v1.0
+fastlane release                       # build, TestFlight, listing + fresh screenshots
+fastlane release version:1.0 submit:true   # ...and submit for App Store review
 ```
 
-Or run the **Release** workflow by hand (Actions tab) to stop at TestFlight, with "Submit for
-App Store review" unticked.
+It takes about 10 minutes, so run it in the background. The build number is the highest one on
+App Store Connect plus one, so there's nothing to bump.
 
-What it uses:
+Other lanes:
 
-- `fastlane/Fastfile`: the `release` lane (build, TestFlight, listing, review).
-- `fastlane/metadata`: name, subtitle, description, keywords, category. Edit these to change the listing.
+- `fastlane setup`: one time. Registers the bundle ID and checks the app record exists.
+- `fastlane metadata`: push only the listing text from `fastlane/metadata`.
+- `fastlane screenshots`: take 6.9" iPhone screenshots on the simulator and push only those.
+
+Files:
+
+- `fastlane/metadata`: name, subtitle, description, keywords, category, copyright. Edit to change the listing.
 - `fastlane/rating_config.json`: age rating answers (all "none", so 4+).
-- `scripts/app_store_screenshots.sh`: takes 6.9" iPhone screenshots on the simulator each release.
+- `scripts/app_store_screenshots.sh`: the screenshot script, using the app's `-demo` launch modes.
 - `App/Assets.xcassets/AppIcon.appiconset`: the icon, drawn by `scripts/make_icon.py`.
 
-Build numbers count up from the latest TestFlight build. Signing is automatic through the API key,
-so there are no certificates or profiles to manage.
+## From GitHub instead
+
+The **Release** workflow runs the same lane on a GitHub Mac runner. Push a tag (`git tag v1.0 &&
+git push origin v1.0`) to release and submit, or run it from the Actions tab to stop at TestFlight.
+It needs repo secrets `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID` (the same values as in
+`fastlane/.env`) and `ASC_KEY_CONTENT` (the text of the `.p8` key).
 
 ## One-time setup
 
-1. **Repository secrets** (Settings > Secrets and variables > Actions):
-   - `APPLE_TEAM_ID`: your 10-character team ID (developer.apple.com > Membership).
-   - `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_CONTENT`: an App Store Connect API key with the
-     **Admin** role (App Store Connect > Users and Access > Integrations). `ASC_KEY_CONTENT` is the
-     `.p8` file's text, or that text base64-encoded. Admin is needed for cloud signing.
-2. **Create the app record.** Apple's API can't create apps, so do this once, either in
-   App Store Connect (Apps > + > New App, bundle ID `com.arochat9.ColorMatch`, name
-   "Color Match: Paint Mixing", SKU `colormatch-ios`) or on a Mac with
-   `bundle install && FASTLANE_USER=you@example.com bundle exec fastlane create_app`.
-3. **In App Store Connect, once:** App Privacy > "Data Not Collected", and set the
-   Support URL and Privacy Policy URL (the policy text is in `docs/privacy.md`; it needs a public URL).
+1. `cp fastlane/.env.example fastlane/.env` and fill in the team ID, key ID and issuer ID
+   fitcheck uses (they're in fitcheck's `swift-mobile-app/CLAUDE.md`).
+2. `fastlane setup`, then create the app in App Store Connect (Apps > + > New App) with the name
+   "Color Match: Paint Mixing", bundle ID `com.arochat9.ColorMatch` and SKU `colormatch-ios`.
+   Apple's API can't create app records.
+3. In App Store Connect: App Privacy > "Data Not Collected", and add a Support URL and Privacy
+   Policy URL (policy text in `docs/privacy.md`; both need to be public pages). Then put them in
+   `fastlane/metadata/en-US/support_url.txt` and `privacy_url.txt` so they stay in sync.
+4. Add your contact details for App Review under App Store Connect > the app > App Review Information.
