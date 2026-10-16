@@ -259,6 +259,9 @@ struct SwatchComparison: View {
             if let goalName {
                 Text(goalName.headline)
                     .font(.title3.weight(.bold))
+                    // One line, so a long name plus a warning still fits without scrolling.
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                     .id(goalName.headline)
                     .transition(.push(from: .trailing).combined(with: .opacity))
             }
