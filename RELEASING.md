@@ -38,7 +38,7 @@ It needs repo secrets `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID` (the same v
 2. `fastlane setup`, then create the app in App Store Connect (Apps > + > New App) with the name
    "Color Match: Paint Mixing", bundle ID `com.arochat9.ColorMatch` and SKU `colormatch-ios`.
    Apple's API can't create app records.
-3. In App Store Connect: App Privacy > "Data Not Collected", and add a Support URL and Privacy
-   Policy URL (policy text in `docs/privacy.md`; both need to be public pages). Then put them in
-   `fastlane/metadata/en-US/support_url.txt` and `privacy_url.txt` so they stay in sync.
+3. Turn on GitHub Pages: repo Settings > Pages > Deploy from a branch > `main` / `/docs`. That
+   publishes the support and privacy pages the listing links to (`docs/`). Then in App Store
+   Connect set App Privacy to "Data Not Collected".
 4. Add your contact details for App Review under App Store Connect > the app > App Review Information.
