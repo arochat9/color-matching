@@ -270,10 +270,7 @@ struct PaintRow: View {
                     }
             }
             .accessibilityLabel("Add a part of \(paint.name)")
-            VStack(alignment: .leading, spacing: 2) {
-                Text(paint.name).font(.body.weight(.semibold))
-                Text(paint.note).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-            }
+            Text(paint.name).font(.body.weight(.semibold))
             Spacer(minLength: 8)
             Button(action: onRemove) {
                 Image(systemName: "minus.circle.fill").font(.title2)
