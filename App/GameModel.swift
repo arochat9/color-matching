@@ -300,9 +300,9 @@ final class GameModel: ObservableObject {
 
     /// The current mix can no longer get to 90% by adding paint, though a fresh pile could.
     var isPastPointOfNoReturn: Bool {
-        guard let recovery = recoveryDeltaE, paletteCanReachGoal else { return false }
-        // Measured against what a fresh pile could reach, so a goal that's only nearly reachable doesn't trip it.
-        return recovery > max(3, goalReach + 2)
+        // 90% is ΔE 3. Only when a fresh pile could get there, but adding to this one can't.
+        guard let recovery = recoveryDeltaE, goalReach <= 3 else { return false }
+        return recovery > 3
     }
 
     private func scheduleRecoveryCheck() {
