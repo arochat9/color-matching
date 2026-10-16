@@ -6,3 +6,7 @@ xcuserdata/
 *.xcuserstate
 .swiftpm/
 screenshots/
+fastlane/report.xml
+fastlane/README.md
+*.ipa
+*.dSYM.zip

@@ -1,0 +1,2 @@
+app_identifier("com.arochat9.ColorMatch")
+team_id(ENV["APPLE_TEAM_ID"]) if ENV["APPLE_TEAM_ID"]

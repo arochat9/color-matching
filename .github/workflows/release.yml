@@ -1,0 +1,53 @@
+name: Release
+
+# Push a tag like v1.0 to build, upload to TestFlight, update the store listing and
+# screenshots, and submit for review. Run it by hand to stop at TestFlight instead.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: App version (e.g. 1.0)
+        required: true
+        default: "1.0"
+      submit:
+        description: Submit for App Store review
+        type: boolean
+        default: false
+
+concurrency: release
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Take App Store screenshots
+        run: scripts/app_store_screenshots.sh fastlane/screenshots/en-US
+
+      - name: Build and upload
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          VERSION: ${{ github.event_name == 'push' && github.ref_name || inputs.version }}
+          SUBMIT: ${{ github.event_name == 'push' || inputs.submit }}
+        run: bundle exec fastlane release version:"$VERSION" submit:"$SUBMIT"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release
+          path: |
+            build/*.ipa
+            fastlane/screenshots/
+          if-no-files-found: ignore

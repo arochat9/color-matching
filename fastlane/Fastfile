@@ -1,0 +1,78 @@
+require "base64"
+
+default_platform(:ios)
+
+APP_ID = "com.arochat9.ColorMatch"
+ROOT = File.expand_path("..", __dir__)
+
+platform :ios do
+  desc "One time: register the bundle ID and create the app in App Store Connect."
+  desc "Run on a Mac with your Apple ID (FASTLANE_USER); Apple's API key can't create apps."
+  lane :create_app do
+    produce(
+      app_identifier: APP_ID,
+      app_name: File.read(File.join(__dir__, "metadata/en-US/name.txt")).strip,
+      language: "en-US",
+      app_version: "1.0",
+      sku: "colormatch-ios",
+      team_id: ENV["APPLE_TEAM_ID"]
+    )
+  end
+
+  desc "Build, upload to TestFlight, push the store listing and screenshots,"
+  desc "and optionally submit for review. Options: version:1.0 submit:true"
+  lane :release do |options|
+    version = (options[:version] || "1.0").to_s.sub(/^v/, "")
+    submit = options[:submit].to_s == "true"
+    team_id = ENV.fetch("APPLE_TEAM_ID")
+
+    key_content = ENV.fetch("ASC_KEY_CONTENT")
+    key_content = Base64.decode64(key_content) unless key_content.include?("BEGIN PRIVATE KEY")
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_content: key_content
+    )
+
+    # xcodebuild needs the key as a file to sign with cloud-managed certificates.
+    key_path = File.join(ROOT, "build", "AuthKey.p8")
+    FileUtils.mkdir_p(File.dirname(key_path))
+    File.write(key_path, key_content)
+    auth = "-allowProvisioningUpdates -authenticationKeyPath #{key_path} " \
+           "-authenticationKeyID #{ENV['ASC_KEY_ID']} -authenticationKeyIssuerID #{ENV['ASC_ISSUER_ID']}"
+
+    build_number = latest_testflight_build_number(api_key: api_key, app_identifier: APP_ID, initial_build_number: 0) + 1
+
+    build_app(
+      project: File.join(ROOT, "ColorMatch.xcodeproj"),
+      scheme: "ColorMatch",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: File.join(ROOT, "build"),
+      xcargs: "#{auth} DEVELOPMENT_TEAM=#{team_id} CODE_SIGN_STYLE=Automatic " \
+              "MARKETING_VERSION=#{version} CURRENT_PROJECT_VERSION=#{build_number}",
+      export_xcargs: auth,
+      export_options: { signingStyle: "automatic", teamID: team_id }
+    )
+
+    # Submitting needs the build processed, so only wait when we're going to submit.
+    upload_to_testflight(api_key: api_key, skip_waiting_for_build_processing: !submit)
+
+    deliver(
+      api_key: api_key,
+      app_identifier: APP_ID,
+      app_version: version,
+      build_number: build_number.to_s,
+      skip_binary_upload: true,
+      overwrite_screenshots: true,
+      app_rating_config_path: File.join(__dir__, "rating_config.json"),
+      submit_for_review: submit,
+      automatic_release: true,
+      force: true,
+      run_precheck_before_submit: false,
+      submission_information: { export_compliance_uses_encryption: false, add_id_info_uses_idfa: false }
+    )
+  ensure
+    FileUtils.rm_f(key_path) if key_path
+  end
+end
