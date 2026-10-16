@@ -76,8 +76,9 @@ struct SplashView: View {
                         .overlay(Circle().stroke(.white.opacity(0.85), lineWidth: 1.5))
                         .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
                         .frame(width: d.size, height: d.size)
-                        .scaleEffect(phase == .burst ? 0.4 : 1)
-                        .opacity(phase == .burst ? 0 : (phase == .landed ? 1 : 0))
+                        // Hidden until the drop lands, then they fly out and shrink away.
+                        .scaleEffect(phase == .burst ? 0.05 : 1)
+                        .opacity(phase == .burst ? 1 : 0)
                         .position(
                             x: center.x + (phase == .burst ? cos(d.angle) * d.distance : 0),
                             y: center.y + (phase == .burst ? sin(d.angle) * d.distance : 0)
