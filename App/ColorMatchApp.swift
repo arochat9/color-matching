@@ -4,21 +4,37 @@ import SwiftUI
 struct ColorMatchApp: App {
     @StateObject private var model = ColorMatchApp.makeModel()
     @StateObject private var theory = ColorMatchApp.makeTheoryModel()
-    @State private var tab = UserDefaults.standard.string(forKey: "demo")?.hasPrefix("theory") == true ? Tab.theory : .mix
-
-    enum Tab { case mix, theory }
+    @State private var game = ColorMatchApp.demoGame
 
     var body: some Scene {
         WindowGroup {
-            TabView(selection: $tab) {
-                ContentView(model: model)
-                    .tabItem { Label("Mix", systemImage: "paintbrush.pointed.fill") }
-                    .tag(Tab.mix)
-                TheoryView(model: theory)
-                    .tabItem { Label("Theory", systemImage: "camera.filters") }
-                    .tag(Tab.theory)
-            }
-            .themed(.sketchbook)
+            HomeView(model: model, theory: theory, onPlay: { game = $0 }, howTo: ColorMatchApp.demoHowTo)
+                .fullScreenCover(item: $game) { game in
+                    Group {
+                        switch game {
+                        case .mix: ContentView(model: model, onHome: { self.game = nil })
+                        case .theory: TheoryView(model: theory, onHome: { self.game = nil })
+                        }
+                    }
+                    .themed(.sketchbook)
+                }
+                .themed(.sketchbook)
+        }
+    }
+
+    /// CI screenshots open straight into a game: theory demos into Color Theory, the rest into mixing.
+    /// `-demo home` shows the home page, and `-demo howto-mix|howto-theory` its how-to-play sheet.
+    private static var demoGame: Game? {
+        guard let demo = UserDefaults.standard.string(forKey: "demo") else { return nil }
+        if demo == "home" || demo.hasPrefix("howto") { return nil }
+        return demo.hasPrefix("theory") ? .theory : .mix
+    }
+
+    private static var demoHowTo: Game? {
+        switch UserDefaults.standard.string(forKey: "demo") {
+        case "howto-mix": .mix
+        case "howto-theory": .theory
+        default: nil
         }
     }
 

@@ -64,6 +64,8 @@ jobs:
           shoot 10-theory-fit-answered -demo theory-fit-answered -seed 2
           shoot 11-theory-hue -demo theory-hue -seed 4
           shoot 12-theory-hue-answered -demo theory-hue-answered -seed 4
+          shoot 14-home -demo home -seed 1
+          shoot 15-how-to-play -demo howto-theory -seed 1
           # Record the paint-splash animation: the app drips in the goal's recipe, then submits.
           xcrun simctl terminate "$UDID" com.arochat9.ColorMatch 2>/dev/null || true
           xcrun simctl io "$UDID" recordVideo --codec h264 --force screenshots/5-drops.mp4 &

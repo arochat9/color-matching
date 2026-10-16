@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// The color theory tab: harmony quizzes, separate from mixing paint.
+/// The color theory game: harmony quizzes, separate from mixing paint.
 struct TheoryView: View {
     @ObservedObject var model: TheoryModel
+    var onHome: (() -> Void)?
+    @State private var showHowTo = false
     @Environment(\.theme) private var theme
 
     var body: some View {
@@ -27,6 +29,15 @@ struct TheoryView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
+                    if let onHome { HomeButton(action: onHome) }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showHowTo = true } label: {
+                        Image(systemName: "questionmark.circle").font(.title3)
+                    }
+                    .accessibilityLabel("How to play")
+                }
+                ToolbarItem(placement: .topBarLeading) {
                     HStack(spacing: 4) {
                         Image(systemName: "flame.fill").symbolEffect(.bounce, value: model.streak)
                         Text("\(model.streak)").contentTransition(.numericText(value: Double(model.streak)))
@@ -38,7 +49,24 @@ struct TheoryView: View {
                     .accessibilityLabel("Best-fit streak: \(model.streak)")
                 }
             }
+            .sheet(isPresented: $showHowTo) {
+                HowToPlayView(game: .theory) { showHowTo = false }
+                    .themed(theme)
+                    .presentationBackground(theme.canvas)
+            }
         }
+    }
+}
+
+/// Back to the home page, at the top left of each game.
+struct HomeButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "house.fill").font(.title3)
+        }
+        .accessibilityLabel("Home")
     }
 }
 

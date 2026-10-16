@@ -33,9 +33,12 @@ The palette menu (top right) switches between two kinds of goals:
 - **Named colors**: any of the 134 painter colors (Cerulean Blue, Burnt Sienna, Payne's Grey, ...).
 - **Any hex code**: fully random. Some can't be matched, which teaches you the palette's limits.
 
-## Color theory tab
+The home page offers two games, **Mix to Match** (above) and **Color Theory** (below), each with a
+"How to play" walkthrough. The house button in either game returns home.
 
-A separate tab for color harmony, taught on the painter's (red-yellow-blue) wheel, where red sits opposite green:
+## Color theory game
+
+A separate game for color harmony, taught on the painter's (red-yellow-blue) wheel, where red sits opposite green:
 
 - **Best fit**: a set of colors is a harmony with one color missing. Pick which of five options belongs.
   One option has the right hue but a clashing tone (too bright for a soft set, say), so tone counts too.
