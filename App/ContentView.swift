@@ -162,7 +162,7 @@ struct ContentView: View {
                     onRemove: { withAnimation(.easeInOut(duration: 0.3)) { model.remove(paint) } }
                 )
                 if paint.id != model.palette.paints.last?.id {
-                    Divider().padding(.leading, 56)
+                    Divider().padding(.leading, 64)
                 }
             }
         }
@@ -311,7 +311,7 @@ struct Swatch: View {
                 }
             }
             .zIndex(1)
-            .frame(height: 112)
+            .frame(height: Layout.isShortScreen ? 84 : 112)
             .phaseAnimator([1.0, 1.06, 0.98, 1.0], trigger: dropCount) { content, scale in
                 content.scaleEffect(scale)
             } animation: { _ in
@@ -360,7 +360,7 @@ struct PaintRow: View {
                 PaintBlob(seed: paint.blobSeed)
                     .fill(paint.color.swiftUIColor.gradient)
                     .overlay(PaintBlob(seed: paint.blobSeed).stroke(.black.opacity(0.08), lineWidth: 1))
-                    .frame(width: 32, height: 32)
+                    .frame(width: 40, height: 40)
                     .phaseAnimator([1.0, 1.25, 0.95, 1.0], trigger: parts) { content, scale in
                         content.scaleEffect(scale)
                     } animation: { _ in
@@ -369,7 +369,7 @@ struct PaintRow: View {
             }
             .accessibilityLabel("Add a part of \(paint.name)")
             VStack(alignment: .leading, spacing: 1) {
-                Text(paint.name).font(.subheadline.weight(.semibold))
+                Text(paint.name).font(.body.weight(.semibold))
                 if isPickedForGoal {
                     Label("Added for this color", systemImage: "sparkles")
                         .font(.caption2.weight(.semibold))
@@ -378,23 +378,23 @@ struct PaintRow: View {
             }
             Spacer(minLength: 8)
             Button(action: onRemove) {
-                Image(systemName: "minus.circle.fill").font(.title3)
+                Image(systemName: "minus.circle.fill").font(.title2)
             }
             .disabled(parts == 0)
             Text("\(parts)")
-                .font(.body.monospacedDigit().weight(.bold))
+                .font(.title3.monospacedDigit().weight(.bold))
                 .contentTransition(.numericText(value: Double(parts)))
                 .frame(minWidth: 28)
             Button(action: onAdd) {
                 Image(systemName: "plus.circle.fill")
-                    .font(.title2)
+                    .font(.title)
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(plusGlyph, plusCircle)
             }
         }
         .buttonStyle(.borderless)
         .padding(.horizontal, 12)
-        .padding(.vertical, 4)
+        .padding(.vertical, Layout.isShortScreen ? 3 : 5)
         .sensoryFeedback(.impact(weight: .light), trigger: parts)
     }
 
@@ -402,6 +402,11 @@ struct PaintRow: View {
     private var isVeryLight: Bool { paint.color.lab.l > 85 }
     private var plusCircle: Color { isVeryLight ? Color.gray.opacity(0.5) : paint.color.swiftUIColor }
     private var plusGlyph: Color { .white }
+}
+
+/// Shorter phones (iPhone 16e/SE-sized) get smaller swatches and tighter rows so nothing scrolls.
+enum Layout {
+    static let isShortScreen = UIScreen.main.bounds.height < 860
 }
 
 private extension View {
