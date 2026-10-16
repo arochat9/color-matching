@@ -13,7 +13,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 12) {
+                VStack(spacing: 16) {
                     SwatchComparison(
                         goal: model.challenge.target,
                         goalName: model.goalName,
@@ -21,12 +21,14 @@ struct ContentView: View {
                         splashes: splashes,
                         dropCount: dropCount
                     )
+                    // Shorter swatches while a warning shows, so the paints still fit above Submit.
+                    .environment(\.swatchHeight, Layout.swatchHeight(warning: showsWarning))
                     goalNotes
                     MixBar(recipe: model.currentRecipe)
                     paintList
                 }
                 .padding(.horizontal)
-                .padding(.top, 4)
+                .padding(.top, 10)
             }
             // Submit stays on screen, however many paints you've set out.
             .safeAreaInset(edge: .bottom) {
@@ -118,6 +120,10 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .animation(.spring(duration: 0.4), value: model.goalIsOutOfReach)
         .animation(.spring(duration: 0.4), value: model.isPastPointOfNoReturn)
+    }
+
+    private var showsWarning: Bool {
+        showWarnings && (model.goalIsOutOfReach || model.isPastPointOfNoReturn)
     }
 
     private var backdrop: some View {
@@ -258,10 +264,10 @@ struct SwatchComparison: View {
         VStack(alignment: .leading, spacing: 10) {
             if let goalName {
                 Text(goalName.headline)
-                    .font(.title3.weight(.bold))
+                    .font(.title2.weight(.bold))
                     // One line, so a long name plus a warning still fits without scrolling.
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .minimumScaleFactor(0.7)
                     .id(goalName.headline)
                     .transition(.push(from: .trailing).combined(with: .opacity))
             }
@@ -277,6 +283,7 @@ struct SwatchComparison: View {
 }
 
 struct Swatch: View {
+    @Environment(\.swatchHeight) private var swatchHeight
     let title: String
     let color: SRGB?
     let caption: String
@@ -287,7 +294,7 @@ struct Swatch: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(theme.accent)
+            Text(title).font(.headline).foregroundStyle(theme.accent)
             ZStack {
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .fill(color?.swiftUIColor ?? Color.secondary.opacity(0.12))
@@ -314,7 +321,7 @@ struct Swatch: View {
                 }
             }
             .zIndex(1)
-            .frame(height: Layout.isShortScreen ? 84 : 112)
+            .frame(height: swatchHeight)
             .phaseAnimator([1.0, 1.06, 0.98, 1.0], trigger: dropCount) { content, scale in
                 content.scaleEffect(scale)
             } animation: { _ in
@@ -410,6 +417,10 @@ struct PaintRow: View {
 /// Shorter phones (iPhone 16e/SE-sized) get smaller swatches and tighter rows so nothing scrolls.
 enum Layout {
     static let isShortScreen = UIScreen.main.bounds.height < 860
+
+    static func swatchHeight(warning: Bool) -> CGFloat {
+        isShortScreen ? 84 : warning ? 76 : 112
+    }
 }
 
 private extension View {
@@ -447,4 +458,8 @@ struct WarningBanner<Action: View>: View {
         .background(tint.opacity(0.12), in: Capsule())
         .transition(.scale(scale: 0.9).combined(with: .opacity))
     }
+}
+
+extension EnvironmentValues {
+    @Entry var swatchHeight: CGFloat = 112
 }
