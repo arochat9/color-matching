@@ -223,7 +223,7 @@ final class GameModel: ObservableObject {
     }
 
     /// True when no mix of this palette gets within "close" range of the goal.
-    var goalIsOutOfReach: Bool { goalReach > 4 }
+    var goalIsOutOfReach: Bool { goalReach > 3 }
 
     func parts(of paint: Paint) -> Int { parts[paint.id] ?? 0 }
 
