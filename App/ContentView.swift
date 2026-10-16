@@ -4,6 +4,7 @@ struct ContentView: View {
     @ObservedObject var model: GameModel
     @State private var splashes: [Splash] = []
     @State private var showLibrary = false
+    @AppStorage("showWarnings") private var showWarnings = true
 
     var body: some View {
         NavigationStack {
@@ -67,40 +68,32 @@ struct ContentView: View {
                 Label("Practice · no star", systemImage: "graduationcap.fill")
                     .badgeStyle(.blue)
             }
-            if model.goalIsOutOfReach {
-                WarningCard(
+            if showWarnings, model.goalIsOutOfReach {
+                WarningBanner(
                     icon: "exclamationmark.triangle.fill",
                     tint: .orange,
-                    title: "Can't be mixed with the \(model.palette.name.lowercased())",
-                    message: "This color is more vivid than any mix of these paints. Best possible: \(Int(Scoring.matchPercent(deltaE: model.goalReach).rounded()))%."
+                    title: "Can't be mixed · best \(Int(Scoring.matchPercent(deltaE: model.goalReach).rounded()))%"
                 ) {
                     paletteSwitcher
                 }
-            } else if model.isPastPointOfNoReturn {
-                WarningCard(
+            } else if showWarnings, model.isPastPointOfNoReturn {
+                WarningBanner(
                     icon: "arrow.uturn.backward.circle.fill",
                     tint: .red,
-                    title: "Past the point of no return",
-                    message: "\(noReturnReason) Adding more paint can't get this pile to 90%, even doubling it. With real paint you'd start a fresh pile."
+                    title: "Past the point of no return"
                 ) {
                     Button("Start fresh") { withAnimation(.spring(duration: 0.4)) { model.clearMix() } }
-                        .buttonStyle(BouncyButtonStyle(tint: .red))
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.capsule)
+                        .controlSize(.small)
+                        .tint(.red)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .animation(.spring(duration: 0.4), value: model.goalIsOutOfReach)
         .animation(.spring(duration: 0.4), value: model.isPastPointOfNoReturn)
-    }
-
-    /// Why the mix can't come back, from its biggest difference with the goal.
-    private var noReturnReason: String {
-        guard let mix = model.mixColor else { return "" }
-        let g = mix.lab, t = model.challenge.target.lab
-        if g.l - t.l > 4 { return "It's too light, and darkening it now would make it too dull." }
-        if g.chroma < t.chroma - 4 { return "It's too dull, and paint can only get duller as you mix." }
-        if g.l - t.l < -4 { return "It's too dark, and lightening it now would wash it out." }
-        return "The hue has drifted too far."
     }
 
     private var paletteSwitcher: some View {
@@ -114,11 +107,11 @@ struct ContentView: View {
                 .disabled(option.palette.id == model.paletteID)
             }
         } label: {
-            Label("Switch palette", systemImage: "paintpalette.fill")
-                .font(.subheadline.weight(.semibold))
+            Label("Switch", systemImage: "paintpalette.fill")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
                 .background(Capsule().fill(Color.orange.gradient))
         }
     }
@@ -193,6 +186,7 @@ struct ContentView: View {
                     Text(mode.title).tag(mode)
                 }
             }
+            Toggle("Mixing warnings", isOn: $showWarnings)
         } label: {
             Image(systemName: "paintpalette.fill")
                 .symbolRenderingMode(.multicolor)
@@ -391,27 +385,27 @@ private extension View {
 }
 
 /// A tinted callout with an action, for warnings about the current mix.
-struct WarningCard<Action: View>: View {
+/// A one-line warning with a small action on the right.
+struct WarningBanner<Action: View>: View {
     let icon: String
     let tint: Color
     let title: String
-    let message: String
     @ViewBuilder let action: () -> Action
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 8) {
             Label(title, systemImage: icon)
-                .font(.subheadline.weight(.bold))
+                .font(.footnote.weight(.semibold))
                 .foregroundStyle(tint)
-            Text(message)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Spacer(minLength: 4)
             action()
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(.leading, 12)
+        .padding(.trailing, 6)
+        .padding(.vertical, 6)
+        .background(tint.opacity(0.12), in: Capsule())
         .transition(.scale(scale: 0.9).combined(with: .opacity))
     }
 }
