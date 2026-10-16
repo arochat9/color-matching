@@ -12,22 +12,25 @@ paints, and the ratio between them, that would have made the goal.
    - your match percentage (from the CIEDE2000 color difference; 90% is ΔE 3, "very close"),
    - hints on value, saturation and hue,
    - the **simplest recipe**: fewest paints and their whole-number ratio, like `3 Titanium White : 1 Cadmium Red`.
+While you mix, the app warns you when:
+
+- the goal **can't be mixed** with your palette at all, or
+- your pile is **past the point of no return**: adding paint, even doubling the pile, can't get it to 90%. Real paint can't be taken back out, so this is when you'd start fresh.
+
 4. Every round you finish at 90% or better adds one point to your lifetime score (the star, saved on the phone).
 
 The swatch button (top right) opens the **color library**: every named color, grouped by hue and searchable.
 Tap one to practice mixing it. Practice rounds don't earn stars.
 
-The palette menu (top right) switches between:
+Your palette is always seven tubes: a fixed core of titanium white, ivory black, cadmium yellow,
+cadmium red, phthalo blue and quinacridone magenta, plus one tube picked for each goal (ultramarine,
+cadmium orange, alizarin crimson, yellow ochre, burnt sienna, viridian, ...), marked "Added for this color".
+That's how painters work: a small everyday palette and a specialty tube when a subject needs it.
+It can reach about 93% of the painter colors.
 
-- **Limited palette**: titanium white, ivory black, cadmium yellow, cadmium red, ultramarine blue, yellow ochre, burnt umber.
-  This is the usual starting kit for painters.
-- **Primaries**: red, yellow, blue, white, black.
-- **Zorn palette**: white, black, yellow ochre, cadmium red.
+The palette menu (top right) switches between two kinds of goals:
 
-and between three kinds of goals:
-
-- **Mixable colors**: always reachable with your palette, shown with the closest color name.
-- **Named colors**: any of the ~1,000 pigment and common color names (Cerulean, Burnt Sienna, Sky Blue, ...). Some, like neon green, are brighter than any mix of real paint, and the app says so.
+- **Named colors**: any of the 134 painter colors (Cerulean Blue, Burnt Sienna, Payne's Grey, ...).
 - **Any hex code**: fully random. Some can't be matched, which teaches you the palette's limits.
 
 ## How mixing works
@@ -38,9 +41,9 @@ make olive, and white lowers saturation as it lightens. RGB averaging gets all o
 The paint curves are hand-tuned approximations, not measured data for a specific brand.
 
 Each goal is labelled with its nearest color name, such as "Close to Cerulean (lighter, duller)".
-Names come from two lists in `App/Resources`: `pigmentnames.csv`, ~210 hand-picked pigment and classic
-paint names (Burnt Sienna, Payne's Grey, Viridian, ...), and `xkcdnames.csv`, the ~800 other common names
-from the [XKCD color survey](https://xkcd.com/color/rgb/) (CC0), where 200k people named colors.
+Names come from `App/Resources/paintcolors.csv`: every common artist pigment under its usual tube name
+(one entry per Colour Index pigment, so no brand aliases), plus classic premixed colors such as Payne's Grey
+and Sap Green. The swatch values are estimates of how each tube looks, not measured data.
 
 ## Project layout
 

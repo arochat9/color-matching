@@ -4,6 +4,7 @@ struct ContentView: View {
     @ObservedObject var model: GameModel
     @State private var splashes: [Splash] = []
     @State private var showLibrary = false
+    @AppStorage("showWarnings") private var showWarnings = true
     @Environment(\.theme) private var theme
 
     var body: some View {
@@ -63,23 +64,40 @@ struct ContentView: View {
         .task { await playDemoDropsIfRequested() }
     }
 
-    /// Practice and out-of-reach badges under the goal name.
+    /// Practice badge plus the "can't be mixed" and "point of no return" warnings.
     @ViewBuilder
     private var goalNotes: some View {
-        if model.isPractice || model.goalIsOutOfReach {
-            HStack(spacing: 8) {
-                if model.isPractice {
-                    Label("Practice · no star", systemImage: "graduationcap.fill")
-                        .badgeStyle(theme.info)
-                }
-                if model.goalIsOutOfReach {
-                    Label("Beyond this palette", systemImage: "exclamationmark.triangle.fill")
-                        .badgeStyle(theme.warning)
-                }
-                Spacer()
+        VStack(alignment: .leading, spacing: 10) {
+            if model.isPractice {
+                Label("Practice · no star", systemImage: "graduationcap.fill")
+                    .badgeStyle(theme.info)
             }
-            .transition(.opacity.combined(with: .move(edge: .top)))
+            if showWarnings, model.goalIsOutOfReach {
+                WarningBanner(
+                    icon: "exclamationmark.triangle.fill",
+                    tint: theme.warning,
+                    title: "Can't be mixed · best \(Int(Scoring.matchPercent(deltaE: model.goalReach).rounded()))%"
+                ) {
+                    EmptyView()
+                }
+            } else if showWarnings, model.isPastPointOfNoReturn {
+                WarningBanner(
+                    icon: "arrow.uturn.backward.circle.fill",
+                    tint: theme.danger,
+                    title: "Past the point of no return"
+                ) {
+                    Button("Start fresh") { withAnimation(.spring(duration: 0.4)) { model.clearMix() } }
+                        .font(.caption.weight(.semibold))
+                        .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.capsule)
+                        .controlSize(.small)
+                        .tint(theme.danger)
+                }
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(.spring(duration: 0.4), value: model.goalIsOutOfReach)
+        .animation(.spring(duration: 0.4), value: model.isPastPointOfNoReturn)
     }
 
     private var backdrop: some View {
@@ -104,6 +122,7 @@ struct ContentView: View {
                 PaintRow(
                     paint: paint,
                     parts: model.parts(of: paint),
+                    isPickedForGoal: paint.id == model.extraPaint.id,
                     onAdd: { addDrop(of: paint) },
                     onRemove: { withAnimation(.easeInOut(duration: 0.3)) { model.remove(paint) } }
                 )
@@ -127,7 +146,7 @@ struct ContentView: View {
                 Label("Submit", systemImage: "paintbrush.pointed.fill").frame(maxWidth: .infinity)
             }
             .buttonStyle(BouncyButtonStyle(prominent: true))
-            .disabled(model.currentRecipe.isEmpty)
+            .disabled(model.currentRecipe.isEmpty || model.isSolving)
             Button(model.isPractice ? "Random" : "Skip") { withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.nextRound() } }
                 .buttonStyle(BouncyButtonStyle())
         }
@@ -135,16 +154,12 @@ struct ContentView: View {
 
     private var settingsMenu: some View {
         Menu {
-            Picker("Palette", selection: $model.paletteID) {
-                ForEach(Palette.all) { palette in
-                    Text(palette.name).tag(palette.id)
-                }
-            }
             Picker("Goals", selection: $model.goalMode) {
                 ForEach(GoalMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
             }
+            Toggle("Mixing warnings", isOn: $showWarnings)
         } label: {
             Image(systemName: "paintpalette.fill")
                 .symbolRenderingMode(.multicolor)
@@ -287,6 +302,8 @@ struct MixBar: View {
 struct PaintRow: View {
     let paint: Paint
     let parts: Int
+    /// The seventh tube, picked to make this goal possible.
+    var isPickedForGoal = false
     let onAdd: () -> Void
     let onRemove: () -> Void
 
@@ -304,7 +321,14 @@ struct PaintRow: View {
                     }
             }
             .accessibilityLabel("Add a part of \(paint.name)")
-            Text(paint.name).font(.body.weight(.semibold))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(paint.name).font(.body.weight(.semibold))
+                if isPickedForGoal {
+                    Label("Added for this color", systemImage: "sparkles")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
             Spacer(minLength: 8)
             Button(action: onRemove) {
                 Image(systemName: "minus.circle.fill").font(.title2)
@@ -341,5 +365,31 @@ private extension View {
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(tint.opacity(0.14), in: Capsule())
+    }
+}
+
+/// A tinted callout with an action, for warnings about the current mix.
+/// A one-line warning with a small action on the right.
+struct WarningBanner<Action: View>: View {
+    let icon: String
+    let tint: Color
+    let title: String
+    @ViewBuilder let action: () -> Action
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Label(title, systemImage: icon)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Spacer(minLength: 4)
+            action()
+        }
+        .padding(.leading, 12)
+        .padding(.trailing, 6)
+        .padding(.vertical, 6)
+        .background(tint.opacity(0.12), in: Capsule())
+        .transition(.scale(scale: 0.9).combined(with: .opacity))
     }
 }

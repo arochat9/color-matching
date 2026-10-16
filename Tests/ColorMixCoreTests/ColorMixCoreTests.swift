@@ -144,3 +144,40 @@ final class QualifierTests: XCTestCase {
         XCTAssertNil(ColorNameIndex.qualifier(of: Lab(l: 51, a: 41, b: 0), relativeTo: named))
     }
 }
+
+final class RecoveryTests: XCTestCase {
+    func testCanRecoverByAddingMoreOfTheMissingPaint() {
+        let target = Recipe([Ingredient(paint: .cadmiumRed, parts: 1), Ingredient(paint: .titaniumWhite, parts: 1)]).color!
+        let current = Recipe([Ingredient(paint: .cadmiumRed, parts: 1)])
+        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 1)
+    }
+
+    func testTooMuchWhiteCannotBeUndone() {
+        // Deep ultramarine can't be reached once the pile is mostly white (the no-return demo's mix).
+        let target = Paint.ultramarineBlue.color
+        let current = Recipe([Ingredient(paint: .ultramarineBlue, parts: 1), Ingredient(paint: .titaniumWhite, parts: 12)])
+        XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
+    }
+
+    func testLightGraysAndPastelsAreInReach() {
+        // A touch of black in a lot of white: coarse whole-number ratios used to miss these.
+        XCTAssertLessThan(PaletteGamut(palette: Palette.limited.paints).distance(to: SRGB(hex: "#C0C0C0")!), 2)
+        XCTAssertLessThan(PaletteGamut(palette: Palette.extended.paints).distance(to: SRGB(hex: "#B0E0E6")!), 1)
+    }
+
+    func testDynamicPaletteReachesCeruleanWithOneExtraTube() {
+        let cerulean = SRGB(hex: "#2A7DB8")!
+        let best = DynamicPalette.extras
+            .map { PaletteGamut(palette: DynamicPalette.palette(with: $0).paints).distance(to: cerulean) }
+            .min()!
+        XCTAssertLessThan(best, 3)
+        XCTAssertEqual(DynamicPalette.palette(with: .ultramarineBlue).paints.count, 7)
+    }
+
+    func testExtendedPaletteReachesBrighterGreens() {
+        let green = SRGB(hex: "#15B01A")!
+        let limited = PaletteGamut(palette: Palette.limited.paints).distance(to: green)
+        let extended = PaletteGamut(palette: Palette.extended.paints).distance(to: green)
+        XCTAssertLessThan(extended, limited)
+    }
+}
