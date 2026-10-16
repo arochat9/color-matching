@@ -126,8 +126,11 @@ struct ContentView: View {
         guard UserDefaults.standard.string(forKey: "demo") == "drops",
               let recipe = model.challenge.sourceRecipe else { return }
         try? await Task.sleep(for: .seconds(1))
-        for ingredient in recipe.ingredients {
-            for _ in 0..<ingredient.parts {
+        // Alternate between paints, the way you'd actually build up a mix.
+        var remaining = recipe.ingredients.map(\.parts)
+        while remaining.contains(where: { $0 > 0 }) {
+            for (i, ingredient) in recipe.ingredients.enumerated() where remaining[i] > 0 {
+                remaining[i] -= 1
                 addDrop(of: ingredient.paint)
                 try? await Task.sleep(for: .seconds(0.7))
             }
@@ -201,13 +204,17 @@ struct Swatch: View {
                         .foregroundStyle(.tertiary)
                         .symbolEffect(.pulse)
                 }
-                ForEach(splashes) { splash in
-                    SplashView(splash: splash)
-                }
             }
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(.white.opacity(0.35), lineWidth: 1))
             .shadow(color: (color?.swiftUIColor ?? .clear).opacity(0.45), radius: 14, y: 8)
+            // Splashes sit outside the clip so droplets can fly past the edge.
+            .overlay {
+                ForEach(splashes) { splash in
+                    SplashView(splash: splash)
+                }
+            }
+            .zIndex(1)
             .frame(height: 160)
             .phaseAnimator([1.0, 1.06, 0.98, 1.0], trigger: dropCount) { content, scale in
                 content.scaleEffect(scale)

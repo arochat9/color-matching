@@ -25,11 +25,11 @@ struct SplashView: View {
 
     private var droplets: [Droplet] {
         var rng = SplitMix64(seed: splash.seed)
-        return (0..<12).map { i in
-            let base = Double(i) / 12 * 2 * .pi
+        return (0..<14).map { i in
+            let base = Double(i) / 14 * 2 * .pi
             return Droplet(
                 angle: base + Double.random(in: -0.25...0.25, using: &rng),
-                distance: CGFloat.random(in: 45...85, using: &rng),
+                distance: CGFloat.random(in: 60...120, using: &rng),
                 size: CGFloat.random(in: 7...18, using: &rng)
             )
         }
@@ -39,10 +39,23 @@ struct SplashView: View {
         GeometryReader { geo in
             let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
             ZStack {
+                // A ripple that shows up even when the paint matches the mix.
+                Circle()
+                    .stroke(.white.opacity(0.9), lineWidth: 3)
+                    .frame(width: 40, height: 40)
+                    .scaleEffect(phase == .burst ? 3.2 : 0.2)
+                    .opacity(phase == .burst ? 0 : (phase == .landed ? 1 : 0))
+                    .position(center)
+
                 // The falling drop.
                 Teardrop()
-                    .fill(splash.color)
-                    .frame(width: 22, height: 30)
+                    .fill(splash.color.gradient)
+                    .overlay(Teardrop().stroke(.white, lineWidth: 2))
+                    .overlay(alignment: .bottomLeading) {
+                        Circle().fill(.white.opacity(0.7)).frame(width: 6, height: 6).offset(x: 5, y: -7)
+                    }
+                    .shadow(color: .black.opacity(0.3), radius: 3, y: 2)
+                    .frame(width: 26, height: 36)
                     .scaleEffect(phase == .burst ? 0.2 : 1)
                     .opacity(phase == .burst ? 0 : 1)
                     .position(x: center.x, y: phase == .falling ? -20 : center.y)
@@ -50,6 +63,7 @@ struct SplashView: View {
                 // The splat in the middle.
                 PaintBlob(seed: splash.seed)
                     .fill(splash.color)
+                    .overlay(PaintBlob(seed: splash.seed).stroke(.white.opacity(0.8), lineWidth: 2))
                     .frame(width: 64, height: 64)
                     .scaleEffect(phase == .burst ? 1.5 : 0.01)
                     .opacity(phase == .burst ? 0 : 0.95)
@@ -59,6 +73,8 @@ struct SplashView: View {
                 ForEach(Array(droplets.enumerated()), id: \.offset) { _, d in
                     Circle()
                         .fill(splash.color)
+                        .overlay(Circle().stroke(.white.opacity(0.85), lineWidth: 1.5))
+                        .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
                         .frame(width: d.size, height: d.size)
                         .scaleEffect(phase == .burst ? 0.4 : 1)
                         .opacity(phase == .burst ? 0 : (phase == .landed ? 1 : 0))
