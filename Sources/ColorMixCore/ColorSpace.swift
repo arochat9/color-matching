@@ -109,10 +109,10 @@ public enum ColorDifference {
     /// CIEDE2000 color difference. Roughly: < 1 is invisible, 2–3 is "barely noticeable", > 10 is obviously different.
     public static func deltaE2000(_ c1: Lab, _ c2: Lab) -> Double {
         func rad(_ d: Double) -> Double { d * .pi / 180 }
-        let pow25to7 = pow(25.0, 7)
+        let pow25to7: Double = pow(25.0, 7.0)
 
         let cBar = (c1.chroma + c2.chroma) / 2
-        let g = 0.5 * (1 - (pow(cBar, 7) / (pow(cBar, 7) + pow25to7)).squareRoot())
+        let g: Double = 0.5 * (1 - (pow(cBar, 7.0) / (pow(cBar, 7.0) + pow25to7)).squareRoot())
         let a1p = (1 + g) * c1.a
         let a2p = (1 + g) * c2.a
         let c1p = (a1p * a1p + c1.b * c1.b).squareRoot()
@@ -133,7 +133,7 @@ public enum ColorDifference {
             dhp = h2p - h1p
             if dhp > 180 { dhp -= 360 } else if dhp < -180 { dhp += 360 }
         }
-        let dHp = 2 * (c1p * c2p).squareRoot() * sin(rad(dhp / 2))
+        let dHp: Double = 2 * (c1p * c2p).squareRoot() * sin(rad(dhp / 2))
 
         let lBarP = (c1.l + c2.l) / 2
         let cBarP = (c1p + c2p) / 2
@@ -146,22 +146,23 @@ public enum ColorDifference {
             }
         }
 
-        let t = 1
-            - 0.17 * cos(rad(hBarP - 30))
-            + 0.24 * cos(rad(2 * hBarP))
-            + 0.32 * cos(rad(3 * hBarP + 6))
-            - 0.20 * cos(rad(4 * hBarP - 63))
-        let dTheta = 30 * exp(-pow((hBarP - 275) / 25, 2))
-        let rc = 2 * (pow(cBarP, 7) / (pow(cBarP, 7) + pow25to7)).squareRoot()
-        let lMinus50Sq = pow(lBarP - 50, 2)
-        let sl = 1 + 0.015 * lMinus50Sq / (20 + lMinus50Sq).squareRoot()
-        let sc = 1 + 0.045 * cBarP
-        let sh = 1 + 0.015 * cBarP * t
-        let rt = -sin(rad(2 * dTheta)) * rc
+        let t1: Double = 0.17 * cos(rad(hBarP - 30))
+        let t2: Double = 0.24 * cos(rad(2 * hBarP))
+        let t3: Double = 0.32 * cos(rad(3 * hBarP + 6))
+        let t4: Double = 0.20 * cos(rad(4 * hBarP - 63))
+        let t: Double = 1 - t1 + t2 + t3 - t4
+        let dTheta: Double = 30 * exp(-pow((hBarP - 275) / 25, 2.0))
+        let rc: Double = 2 * (pow(cBarP, 7.0) / (pow(cBarP, 7.0) + pow25to7)).squareRoot()
+        let lMinus50Sq: Double = (lBarP - 50) * (lBarP - 50)
+        let sl: Double = 1 + 0.015 * lMinus50Sq / (20 + lMinus50Sq).squareRoot()
+        let sc: Double = 1 + 0.045 * cBarP
+        let sh: Double = 1 + 0.015 * cBarP * t
+        let rt: Double = -sin(rad(2 * dTheta)) * rc
 
         let lTerm = dLp / sl
         let cTerm = dCp / sc
         let hTerm = dHp / sh
-        return (lTerm * lTerm + cTerm * cTerm + hTerm * hTerm + rt * cTerm * hTerm).squareRoot()
+        let sum: Double = lTerm * lTerm + cTerm * cTerm + hTerm * hTerm
+        return (sum + rt * cTerm * hTerm).squareRoot()
     }
 }
