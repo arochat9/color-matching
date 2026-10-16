@@ -8,6 +8,7 @@ struct ResultView: View {
     /// Animated stand-in for the match percentage so it counts up when the sheet opens.
     @State private var shownPercent = 0.0
     @State private var revealed = false
+    @Environment(\.theme) private var theme
 
     var body: some View {
         ZStack {
@@ -41,7 +42,6 @@ struct ResultView: View {
                     .ignoresSafeArea()
             }
         }
-        .fontDesign(.rounded)
         .sensoryFeedback(.success, trigger: revealed) { _, now in now && result.match.counts }
         .onAppear {
             withAnimation(.easeOut(duration: 1.0)) { shownPercent = result.match.matchPercent }
@@ -50,7 +50,7 @@ struct ResultView: View {
     }
 
     private var confettiColors: [Color] {
-        [result.target.swiftUIColor, .orange, .yellow, .pink, .mint]
+        [result.target.swiftUIColor, theme.star, theme.accent, theme.success, .white]
             + result.simplest.recipe.ingredients.map { $0.paint.color.swiftUIColor }
     }
 
@@ -59,14 +59,14 @@ struct ResultView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("\(Int(shownPercent.rounded()))%")
                     .font(.system(size: 64, weight: .heavy, design: .rounded))
-                    .foregroundStyle(result.match.counts ? AnyShapeStyle(Color.green.gradient) : AnyShapeStyle(Color.primary))
+                    .foregroundStyle(result.match.counts ? AnyShapeStyle(theme.success.gradient) : AnyShapeStyle(theme.ink))
                     .contentTransition(.numericText(value: shownPercent))
                 Text("match").font(.title3).foregroundStyle(.secondary)
                 Spacer()
                 if result.scoredPoint {
                     Label("+1", systemImage: "star.fill")
                         .font(.title2.weight(.heavy))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(theme.star)
                         .symbolEffect(.bounce, value: revealed)
                         .scaleEffect(revealed ? 1 : 0.2)
                         .rotationEffect(.degrees(revealed ? 0 : -40))
@@ -83,7 +83,7 @@ struct ResultView: View {
             if result.isPractice {
                 Label("Practice round, so no star", systemImage: "graduationcap.fill")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(theme.info)
             }
             if result.closest.deltaE > 2 {
                 Label(
@@ -91,7 +91,7 @@ struct ResultView: View {
                     systemImage: "exclamationmark.triangle.fill"
                 )
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(theme.warning)
             }
         }
     }
@@ -127,7 +127,7 @@ struct ResultView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(theme.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     private var buttons: some View {
@@ -159,6 +159,7 @@ struct RecipeCard: View {
     let title: String
     let subtitle: String
     let solution: Solution
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -179,7 +180,7 @@ struct RecipeCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(theme.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     private var ratio: String {

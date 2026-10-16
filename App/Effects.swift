@@ -209,19 +209,23 @@ struct ConfettiView: View {
 
 /// Squishes on press and springs back.
 struct BouncyButtonStyle: ButtonStyle {
-    var tint: Color = .accentColor
+    /// Defaults to the theme's accent.
+    var tint: Color?
     var prominent = false
 
     func makeBody(configuration: Configuration) -> some View {
-        BouncyButtonBody(configuration: configuration, tint: tint, prominent: prominent)
+        BouncyButtonBody(configuration: configuration, customTint: tint, prominent: prominent)
     }
 }
 
 private struct BouncyButtonBody: View {
     let configuration: ButtonStyleConfiguration
-    let tint: Color
+    let customTint: Color?
     let prominent: Bool
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.theme) private var theme
+
+    private var tint: Color { customTint ?? theme.accent }
 
     var body: some View {
         configuration.label
@@ -229,7 +233,7 @@ private struct BouncyButtonBody: View {
             .padding(.vertical, 14)
             .padding(.horizontal, 18)
             .frame(minHeight: 50)
-            .foregroundStyle(prominent ? Color.white : tint)
+            .foregroundStyle(prominent ? (customTint == nil ? theme.onAccent : Color.white) : tint)
             .background(
                 Capsule().fill(prominent ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(tint.opacity(0.14)))
             )
