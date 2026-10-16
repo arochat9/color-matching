@@ -3,16 +3,17 @@ import SwiftUI
 @main
 struct ColorMatchApp: App {
     @StateObject private var model = ColorMatchApp.makeModel()
+    private let theme = Theme.launchChoice
 
     var body: some Scene {
         WindowGroup {
             ContentView(model: model)
-                .fontDesign(.rounded)
+                .themed(theme)
         }
     }
 
     /// Launch arguments used by CI to take repeatable screenshots:
-    /// `-demo mixing|submitted|drops` and `-seed N`. "drops" is played by ContentView.
+    /// `-demo mixing|submitted|drops`, `-seed N` and `-theme <id>`. "drops" is played by ContentView.
     private static func makeModel() -> GameModel {
         let defaults = UserDefaults.standard
         guard let demo = defaults.string(forKey: "demo") else { return GameModel() }
