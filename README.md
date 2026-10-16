@@ -54,3 +54,5 @@ and Sap Green. The swatch values are estimates of how each tube looks, not measu
   (pick your team under Signing & Capabilities to run on a device).
 
 CI (`.github/workflows/ci.yml`) runs the tests on macOS, builds the app, and uploads simulator screenshots.
+
+Releases to the App Store are automated with fastlane and GitHub Actions; see [RELEASING.md](RELEASING.md).

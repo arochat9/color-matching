@@ -7,7 +7,7 @@ struct ColorMatchApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(model: model)
-                .fontDesign(.rounded)
+                .themed(.sketchbook)
         }
     }
 

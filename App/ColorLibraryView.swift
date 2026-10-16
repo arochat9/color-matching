@@ -5,6 +5,7 @@ struct ColorLibraryView: View {
     let onPick: (NamedColor) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
+    @Environment(\.theme) private var theme
 
     private var sections: [(family: String, colors: [NamedColor])] {
         let query = search.trimmingCharacters(in: .whitespaces)
@@ -38,7 +39,7 @@ struct ColorLibraryView: View {
                             .font(.headline)
                             .padding(.vertical, 6)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(.bar)
+                            .background(theme.canvas)
                     }
                 }
             }
@@ -53,7 +54,7 @@ struct ColorLibraryView: View {
                 .foregroundStyle(.secondary)
                 .padding(8)
                 .frame(maxWidth: .infinity)
-                .background(.bar)
+                .background(theme.canvas)
         }
     }
 }

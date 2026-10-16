@@ -1,0 +1,24 @@
+Train your eye for color mixing, the way painters actually do it.
+
+You get a goal color. Add parts of real paints from a painter's palette until your mix matches, then submit.
+
+After every round you see:
+• How close you got, as a match percentage
+• Whether your mix is too light or dark, too dull or bright, and which way the hue is off
+• The simplest recipe for the goal: the fewest paints and the ratio between them, like 3 Titanium White : 1 Cadmium Red
+
+Mixing works like real pigment, not like a screen. Blue and yellow make green, yellow and black make olive, and white cools and dulls a color as it lightens it.
+
+Pick your palette:
+• Limited palette: titanium white, ivory black, cadmium yellow, cadmium red, ultramarine blue, yellow ochre and burnt umber
+• Primaries: red, yellow, blue, white and black
+• Zorn palette: white, black, yellow ochre and cadmium red
+
+Pick your goals:
+• Mixable colors you can always reach
+• Named pigment and common colors like Cerulean, Burnt Sienna and Sky Blue
+• Any color at all, to learn your palette's limits
+
+Browse the color library to see every named color, grouped by hue and searchable, and practice any one of them.
+
+Rounds at 90% or better add to your lifetime score. No accounts, no ads, nothing collected.

@@ -5,6 +5,7 @@ struct ContentView: View {
     @State private var splashes: [Splash] = []
     @State private var showLibrary = false
     @AppStorage("showWarnings") private var showWarnings = true
+    @Environment(\.theme) private var theme
 
     var body: some View {
         NavigationStack {
@@ -46,6 +47,7 @@ struct ContentView: View {
                 ColorLibraryView { color in
                     withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.practice(color) }
                 }
+                .background(theme.canvas.ignoresSafeArea())
             }
             .sheet(item: $model.result) { result in
                 ResultView(
@@ -53,6 +55,8 @@ struct ContentView: View {
                     onTryAgain: { model.result = nil },
                     onNext: { withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.nextRound() } }
                 )
+                .themed(theme)
+                .presentationBackground(theme.canvas)
                 .presentationDetents([.large])
                 .presentationCornerRadius(32)
             }
@@ -66,12 +70,12 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 10) {
             if model.isPractice {
                 Label("Practice · no star", systemImage: "graduationcap.fill")
-                    .badgeStyle(.blue)
+                    .badgeStyle(theme.info)
             }
             if showWarnings, model.goalIsOutOfReach {
                 WarningBanner(
                     icon: "exclamationmark.triangle.fill",
-                    tint: .orange,
+                    tint: theme.warning,
                     title: "Can't be mixed · best \(Int(Scoring.matchPercent(deltaE: model.goalReach).rounded()))%"
                 ) {
                     EmptyView()
@@ -79,7 +83,7 @@ struct ContentView: View {
             } else if showWarnings, model.isPastPointOfNoReturn {
                 WarningBanner(
                     icon: "arrow.uturn.backward.circle.fill",
-                    tint: .red,
+                    tint: theme.danger,
                     title: "Past the point of no return"
                 ) {
                     Button("Start fresh") { withAnimation(.spring(duration: 0.4)) { model.clearMix() } }
@@ -87,7 +91,7 @@ struct ContentView: View {
                         .buttonStyle(.borderedProminent)
                         .buttonBorderShape(.capsule)
                         .controlSize(.small)
-                        .tint(.red)
+                        .tint(theme.danger)
                 }
             }
         }
@@ -96,15 +100,8 @@ struct ContentView: View {
         .animation(.spring(duration: 0.4), value: model.isPastPointOfNoReturn)
     }
 
-    /// A soft wash of the goal color behind everything.
     private var backdrop: some View {
-        LinearGradient(
-            colors: [model.challenge.target.swiftUIColor.opacity(0.28), Color(.systemBackground)],
-            startPoint: .top,
-            endPoint: .center
-        )
-        .ignoresSafeArea()
-        .animation(.easeInOut(duration: 0.6), value: model.challenge.target)
+        theme.canvas.ignoresSafeArea()
     }
 
     private func addDrop(of paint: Paint) {
@@ -135,23 +132,23 @@ struct ContentView: View {
             }
         }
         .padding(.vertical, 4)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
+        .background(theme.surface, in: RoundedRectangle(cornerRadius: 24))
     }
 
     private var actions: some View {
         HStack(spacing: 10) {
             Button("Clear") { withAnimation(.spring(duration: 0.4)) { model.clearMix() } }
-                .buttonStyle(BouncyButtonStyle(tint: .red))
+                .buttonStyle(BouncyButtonStyle(tint: theme.danger))
                 .disabled(model.currentRecipe.isEmpty)
             Button {
                 model.submit()
             } label: {
                 Label("Submit", systemImage: "paintbrush.pointed.fill").frame(maxWidth: .infinity)
             }
-            .buttonStyle(BouncyButtonStyle(tint: .accentColor, prominent: true))
+            .buttonStyle(BouncyButtonStyle(prominent: true))
             .disabled(model.currentRecipe.isEmpty || model.isSolving)
             Button(model.isPractice ? "Random" : "Skip") { withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.nextRound() } }
-                .buttonStyle(BouncyButtonStyle(tint: .accentColor))
+                .buttonStyle(BouncyButtonStyle())
         }
     }
 
@@ -192,6 +189,7 @@ struct ContentView: View {
 
 struct ScoreBadge: View {
     let score: Int
+    @Environment(\.theme) private var theme
 
     var body: some View {
         HStack(spacing: 4) {
@@ -201,7 +199,7 @@ struct ScoreBadge: View {
                 .contentTransition(.numericText(value: Double(score)))
         }
         .font(.headline)
-        .foregroundStyle(.orange)
+        .foregroundStyle(theme.star)
         .animation(.spring, value: score)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Lifetime matches: \(score)")
@@ -238,13 +236,14 @@ struct Swatch: View {
     let color: SRGB?
     let caption: String
     var splashes: [Splash] = []
+    @Environment(\.theme) private var theme
 
     /// Bumps each time a drop lands so the swatch can jiggle.
     private var dropCount: Int { splashes.count }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.headline)
+            Text(title).font(.headline).foregroundStyle(theme.accent)
             ZStack {
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .fill(color?.swiftUIColor ?? Color.secondary.opacity(0.12))
