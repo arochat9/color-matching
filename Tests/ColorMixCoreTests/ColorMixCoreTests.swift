@@ -152,32 +152,25 @@ final class RecoveryTests: XCTestCase {
         XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 1)
     }
 
-    func testOnePartOfAStrongPaintIsNotPastNoReturn() {
-        // One part of rose is a fine start for a pale pink: you just need a lot of white.
-        let target = Recipe([Ingredient(paint: .permanentRose, parts: 1), Ingredient(paint: .titaniumWhite, parts: 12)]).color!
-        let current = Recipe([Ingredient(paint: .permanentRose, parts: 1)])
+    func testOnePartOfTheExtraTubeIsNotPastNoReturn() {
+        // The original report: one part of rose toward a brick red was flagged though it's easy to fix.
         let palette = DynamicPalette.palette(with: .permanentRose).paints
-        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: palette), 1.5)
+        let current = Recipe([Ingredient(paint: .permanentRose, parts: 1)])
+        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: SRGB(hex: "#B0513A")!, palette: palette), 3)
     }
 
     func testBlackInYellowCannotBeUndone() {
-        // Black dulls yellow for good: even ten times the pile in fresh yellow can't clean it up.
+        // Black dulls yellow for good.
         let target = Paint.cadmiumYellow.color
         let current = Recipe([Ingredient(paint: .ivoryBlack, parts: 1), Ingredient(paint: .cadmiumYellow, parts: 2)])
         XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
     }
 
-    func testTooMuchWhiteCanBeRescuedWithEnoughPaint() {
-        // A mostly-white pile isn't lost: piling in ultramarine brings it back.
+    func testTooMuchWhiteIsPastNoReturnWhenItTakesMoreThanDoubling() {
+        // Getting back to deep ultramarine would take far more than doubling this pile.
         let target = Paint.ultramarineBlue.color
         let current = Recipe([Ingredient(paint: .ultramarineBlue, parts: 1), Ingredient(paint: .titaniumWhite, parts: 12)])
-        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
-    }
-
-    func testPalePinkFromOnePartRose() {
-        let palette = DynamicPalette.palette(with: .permanentRose).paints
-        let current = Recipe([Ingredient(paint: .permanentRose, parts: 1)])
-        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: SRGB(hex: "#F4C2C2")!, palette: palette), 3)
+        XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
     }
 
     func testLightGraysAndPastelsAreInReach() {

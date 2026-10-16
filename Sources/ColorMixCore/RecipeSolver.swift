@@ -89,7 +89,7 @@ public struct RecipeSolver: Sendable {
 public extension RecipeSolver {
     /// The closest you can get to `target` by only *adding* paint to `current`, the way real paint works:
     /// once it's on the palette you can't take it back out. Tries adding up to three paints, from a dab up to
-    /// `max(10 × the pile, 100 parts)`, so a single part of a strong paint can still be tamed with lots of white.
+    /// as much again as the pile (at least 10 parts). Needing more than doubling the pile counts as no return.
     /// Returns the best ΔE2000.
     static func bestDeltaEByAdding(to current: Recipe, target: SRGB, palette: [Paint]) -> Double {
         let targetLab = target.lab
@@ -104,7 +104,7 @@ public extension RecipeSolver {
             baseWeight += w
         }
         guard baseWeight > 0 else { return .infinity }
-        let cap = max(10 * Double(current.totalParts), 100)
+        let cap = max(Double(current.totalParts), 10)
         let amounts = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5, 0.75, 1].map { $0 * cap }
 
         var best = Double.infinity
