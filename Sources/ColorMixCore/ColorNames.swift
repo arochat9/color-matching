@@ -50,23 +50,77 @@ public final class ColorNameIndex: @unchecked Sendable {
 public struct PaletteGamut: Sendable {
     public let samples: [Lab]
 
-    /// Every mix of up to three paints with up to `maxParts` total parts.
+    /// Fractions of the mix (by tinting weight) given to white or black when tinting and shading.
+    static let whiteSteps: [Double] = [0, 0.3, 0.5, 0.7, 0.8, 0.88, 0.93, 0.96, 0.98, 0.99, 0.995]
+    static let blackSteps: [Double] = [0, 0.003, 0.01, 0.02, 0.05, 0.1, 0.2, 0.4]
+
+    /// Every mix of one or two colored paints (up to `maxParts` parts), each tinted with white and
+    /// shaded with black in steps, plus the grays. Small touches of black or a lot of white matter
+    /// for pastels and light grays, which coarse whole-number ratios miss.
     public init(palette: [Paint], maxParts: Int = 8) {
-        var samples: [Lab] = []
-        for k in 1...min(3, palette.count) {
-            for indices in combinations(of: palette.count, choose: k) {
+        let bands = Spectral.bandCount
+        let white = palette.first { $0.id == Paint.titaniumWhite.id }
+        let black = palette.first { $0.id == Paint.ivoryBlack.id }
+        let colored = palette.filter { $0.id != white?.id && $0.id != black?.id }
+        let whiteKS = white?.reflectance.map(Mixer.kOverS)
+        let blackKS = black?.reflectance.map(Mixer.kOverS)
+
+        var bases: [[Double]?] = [nil]
+        let coloredKS = colored.map { $0.reflectance.map(Mixer.kOverS) }
+        for k in 1...min(2, max(colored.count, 1)) where !colored.isEmpty {
+            for indices in combinations(of: colored.count, choose: k) {
                 forEachComposition(count: k, maxTotal: k == 1 ? 1 : maxParts) { parts in
-                    let recipe = Recipe(zip(indices, parts).map { Ingredient(paint: palette[$0], parts: $1) })
-                    if let color = recipe.color { samples.append(color.lab) }
+                    var mixed = [Double](repeating: 0, count: bands)
+                    var total = 0.0
+                    for (j, index) in indices.enumerated() {
+                        let w = Double(parts[j]) * colored[index].strength
+                        total += w
+                        for i in 0..<bands { mixed[i] += w * coloredKS[index][i] }
+                    }
+                    bases.append(mixed.map { $0 / total })
+                }
+            }
+        }
+
+        var samples: [Lab] = []
+        var ks = [Double](repeating: 0, count: bands)
+        for base in bases {
+            for wf in (whiteKS == nil ? [0] : PaletteGamut.whiteSteps) {
+                for bf in (blackKS == nil ? [0] : PaletteGamut.blackSteps) {
+                    let baseShare = 1 - wf - bf
+                    if base == nil {
+                        // Grays: white and black alone.
+                        guard wf + bf > 0, baseShare >= -1e-9 else { continue }
+                    } else if baseShare <= 0 {
+                        continue
+                    }
+                    let norm = base == nil ? wf + bf : 1
+                    for i in 0..<bands {
+                        var v = (base?[i] ?? 0) * max(baseShare, 0)
+                        if let whiteKS { v += wf * whiteKS[i] }
+                        if let blackKS { v += bf * blackKS[i] }
+                        ks[i] = v / norm
+                    }
+                    let r = ks.map(Mixer.reflectance(fromKOverS:))
+                    samples.append(Spectral.srgb(fromReflectance: r).lab)
                 }
             }
         }
         self.samples = samples
     }
 
+    /// Closest ΔE2000 from `color` to anything in the gamut.
     public func distance(to color: SRGB) -> Double {
         let lab = color.lab
-        return samples.map { ColorDifference.deltaE2000(lab, $0) }.min() ?? .infinity
+        // ΔE2000 is slow; shortlist by plain Lab distance first.
+        var shortlist: [(Double, Lab)] = []
+        shortlist.reserveCapacity(samples.count)
+        for s in samples {
+            let dl = s.l - lab.l, da = s.a - lab.a, db = s.b - lab.b
+            shortlist.append((dl * dl + da * da + db * db, s))
+        }
+        shortlist.sort { $0.0 < $1.0 }
+        return shortlist.prefix(60).map { ColorDifference.deltaE2000(lab, $0.1) }.min() ?? .infinity
     }
 }
 

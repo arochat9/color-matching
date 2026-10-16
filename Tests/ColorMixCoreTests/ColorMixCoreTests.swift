@@ -159,6 +159,12 @@ final class RecoveryTests: XCTestCase {
         XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
     }
 
+    func testLightGraysAndPastelsAreInReach() {
+        // A touch of black in a lot of white: coarse whole-number ratios used to miss these.
+        XCTAssertLessThan(PaletteGamut(palette: Palette.limited.paints).distance(to: SRGB(hex: "#C0C0C0")!), 1)
+        XCTAssertLessThan(PaletteGamut(palette: Palette.extended.paints).distance(to: SRGB(hex: "#B0E0E6")!), 1)
+    }
+
     func testExtendedPaletteReachesBrighterGreens() {
         let green = SRGB(hex: "#15B01A")!
         let limited = PaletteGamut(palette: Palette.limited.paints).distance(to: green)
