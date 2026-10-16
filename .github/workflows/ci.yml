@@ -57,6 +57,7 @@ jobs:
           shoot 1-mixing -demo mixing -seed 3
           shoot 2-result -demo submitted -seed 3
           shoot 3-named-goal -demo mixing -seed 5 -goalMode named
+          shoot 6-library -demo library -seed 1
           # Record the paint-splash animation: the app drips in the goal's recipe, then submits.
           xcrun simctl terminate "$UDID" com.arochat9.ColorMatch 2>/dev/null || true
           xcrun simctl io "$UDID" recordVideo --codec h264 --force screenshots/5-drops.mp4 &

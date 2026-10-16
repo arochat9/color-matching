@@ -157,6 +157,7 @@ struct ContentView: View {
 
     /// `-demo drops` (used by CI): drip the goal's own recipe in, one drop at a time, then submit.
     private func playDemoDropsIfRequested() async {
+        if UserDefaults.standard.string(forKey: "demo") == "library" { showLibrary = true }
         guard UserDefaults.standard.string(forKey: "demo") == "drops",
               let recipe = model.challenge.sourceRecipe else { return }
         try? await Task.sleep(for: .seconds(1))
