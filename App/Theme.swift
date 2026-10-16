@@ -21,7 +21,7 @@ struct Theme {
     let canvas: Color
     /// Cards sitting on the canvas.
     let surface: Color
-    /// Body text.
+    /// Big headline text.
     let ink: Color
     let fontDesign: Font.Design
     /// Forces light or dark; nil follows the system.
@@ -121,7 +121,6 @@ extension View {
             .environment(\.theme, theme)
             .fontDesign(theme.fontDesign)
             .tint(theme.accent)
-            .foregroundStyle(theme.ink)
             .preferredColorScheme(theme.colorScheme)
     }
 }

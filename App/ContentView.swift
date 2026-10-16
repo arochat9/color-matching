@@ -82,15 +82,20 @@ struct ContentView: View {
         }
     }
 
-    /// A soft wash of the goal color behind everything.
+    /// The theme's canvas. The original look keeps its soft wash of the goal color.
+    @ViewBuilder
     private var backdrop: some View {
-        LinearGradient(
-            colors: [model.challenge.target.swiftUIColor.opacity(0.28), theme.canvas],
-            startPoint: .top,
-            endPoint: .center
-        )
-        .ignoresSafeArea()
-        .animation(.easeInOut(duration: 0.6), value: model.challenge.target)
+        if theme.id == Theme.system.id {
+            LinearGradient(
+                colors: [model.challenge.target.swiftUIColor.opacity(0.28), theme.canvas],
+                startPoint: .top,
+                endPoint: .center
+            )
+            .ignoresSafeArea()
+            .animation(.easeInOut(duration: 0.6), value: model.challenge.target)
+        } else {
+            theme.canvas.ignoresSafeArea()
+        }
     }
 
     private func addDrop(of paint: Paint) {
@@ -228,13 +233,14 @@ struct Swatch: View {
     let color: SRGB?
     let caption: String
     var splashes: [Splash] = []
+    @Environment(\.theme) private var theme
 
     /// Bumps each time a drop lands so the swatch can jiggle.
     private var dropCount: Int { splashes.count }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.headline)
+            Text(title).font(.headline).foregroundStyle(theme.accent)
             ZStack {
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .fill(color?.swiftUIColor ?? Color.secondary.opacity(0.12))
