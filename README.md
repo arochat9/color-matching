@@ -24,7 +24,7 @@ The palette menu (top right) switches between:
 and between three kinds of goals:
 
 - **Mixable colors**: always reachable with your palette, shown with the closest color name.
-- **Named colors**: common painter names (Cerulean, Burnt Sienna, ...) that your palette can get close to.
+- **Named colors**: pigment and common color names (Cerulean, Burnt Sienna, Sky Blue, ...) that your palette can get close to.
 - **Any hex code**: fully random. Some can't be matched, which teaches you the palette's limits.
 
 ## How mixing works
@@ -34,10 +34,10 @@ theory on those curves, so they behave like pigment: blue and yellow make green,
 make olive, and white lowers saturation as it lightens. RGB averaging gets all of these wrong.
 The paint curves are hand-tuned approximations, not measured data for a specific brand.
 
-Each goal is labelled with the nearest name from a hand-picked list of ~200 pigment and everyday
-names a painter would know (`App/Resources/commonnames.csv`), such as "Close to Cerulean (lighter, duller)".
-Underneath is the exact name from [meodai/color-names](https://github.com/meodai/color-names)
-(MIT, ~32k names, `App/Resources/colornames.csv`), which almost always matches the shade but is often whimsical.
+Each goal is labelled with its nearest color name, such as "Close to Cerulean (lighter, duller)".
+Names come from two lists in `App/Resources`: `pigmentnames.csv`, ~210 hand-picked pigment and classic
+paint names (Burnt Sienna, Payne's Grey, Viridian, ...), and `xkcdnames.csv`, the ~800 other common names
+from the [XKCD color survey](https://xkcd.com/color/rgb/) (CC0), where 200k people named colors.
 
 ## Project layout
 

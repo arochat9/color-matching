@@ -112,11 +112,6 @@ struct SwatchComparison: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(goalName.headline)
                         .font(.title3.weight(.semibold))
-                    if let exact = goalName.exact {
-                        Text("Exact name: \(exact)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
                 }
             }
             HStack(spacing: 12) {
