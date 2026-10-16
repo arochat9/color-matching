@@ -153,9 +153,9 @@ final class RecoveryTests: XCTestCase {
     }
 
     func testTooMuchWhiteCannotBeUndone() {
-        // A deep red can't be reached once the pile is mostly white.
-        let target = Paint.cadmiumRed.color
-        let current = Recipe([Ingredient(paint: .cadmiumRed, parts: 1), Ingredient(paint: .titaniumWhite, parts: 10)])
+        // Deep ultramarine can't be reached once the pile is mostly white (the no-return demo's mix).
+        let target = Paint.ultramarineBlue.color
+        let current = Recipe([Ingredient(paint: .ultramarineBlue, parts: 1), Ingredient(paint: .titaniumWhite, parts: 12)])
         XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
     }
 
