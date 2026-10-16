@@ -37,7 +37,7 @@ struct ColorMatchApp: App {
             model.setDemoChallenge(Challenge(target: Paint.ultramarineBlue.color, sourceRecipe: ultramarine))
             model.setParts(Recipe([Ingredient(paint: .ultramarineBlue, parts: 1), Ingredient(paint: .titaniumWhite, parts: 12)]))
         }
-        if demo == "neon", let neon = GameModel.colorNames.colors.first(where: { $0.name == "Neon Green" }) {
+        if demo == "neon", let neon = GameModel.colorNames.colors.first(where: { $0.name == "Green Gold" }) {
             model.practice(neon)
         }
         if demo == "submitted" {

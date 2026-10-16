@@ -74,7 +74,7 @@ struct ContentView: View {
                     tint: .orange,
                     title: "Can't be mixed · best \(Int(Scoring.matchPercent(deltaE: model.goalReach).rounded()))%"
                 ) {
-                    paletteSwitcher
+                    EmptyView()
                 }
             } else if showWarnings, model.isPastPointOfNoReturn {
                 WarningBanner(
@@ -94,26 +94,6 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .animation(.spring(duration: 0.4), value: model.goalIsOutOfReach)
         .animation(.spring(duration: 0.4), value: model.isPastPointOfNoReturn)
-    }
-
-    private var paletteSwitcher: some View {
-        Menu {
-            ForEach(model.paletteReach(), id: \.palette.id) { option in
-                Button {
-                    withAnimation(.spring(duration: 0.4)) { model.switchPalette(to: option.palette) }
-                } label: {
-                    Text("\(option.palette.name): up to \(Int(option.percent.rounded()))%")
-                }
-                .disabled(option.palette.id == model.paletteID)
-            }
-        } label: {
-            Label("Switch", systemImage: "paintpalette.fill")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Capsule().fill(Color.orange.gradient))
-        }
     }
 
     /// A soft wash of the goal color behind everything.
@@ -145,6 +125,7 @@ struct ContentView: View {
                 PaintRow(
                     paint: paint,
                     parts: model.parts(of: paint),
+                    isPickedForGoal: paint.id == model.extraPaint.id,
                     onAdd: { addDrop(of: paint) },
                     onRemove: { withAnimation(.easeInOut(duration: 0.3)) { model.remove(paint) } }
                 )
@@ -176,11 +157,6 @@ struct ContentView: View {
 
     private var settingsMenu: some View {
         Menu {
-            Picker("Palette", selection: $model.paletteID) {
-                ForEach(Palette.all) { palette in
-                    Text(palette.name).tag(palette.id)
-                }
-            }
             Picker("Goals", selection: $model.goalMode) {
                 ForEach(GoalMode.allCases) { mode in
                     Text(mode.title).tag(mode)
@@ -327,6 +303,8 @@ struct MixBar: View {
 struct PaintRow: View {
     let paint: Paint
     let parts: Int
+    /// The seventh tube, picked to make this goal possible.
+    var isPickedForGoal = false
     let onAdd: () -> Void
     let onRemove: () -> Void
 
@@ -344,7 +322,14 @@ struct PaintRow: View {
                     }
             }
             .accessibilityLabel("Add a part of \(paint.name)")
-            Text(paint.name).font(.body.weight(.semibold))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(paint.name).font(.body.weight(.semibold))
+                if isPickedForGoal {
+                    Label("Added for this color", systemImage: "sparkles")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
             Spacer(minLength: 8)
             Button(action: onRemove) {
                 Image(systemName: "minus.circle.fill").font(.title2)

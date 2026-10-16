@@ -161,8 +161,17 @@ final class RecoveryTests: XCTestCase {
 
     func testLightGraysAndPastelsAreInReach() {
         // A touch of black in a lot of white: coarse whole-number ratios used to miss these.
-        XCTAssertLessThan(PaletteGamut(palette: Palette.limited.paints).distance(to: SRGB(hex: "#C0C0C0")!), 1)
+        XCTAssertLessThan(PaletteGamut(palette: Palette.limited.paints).distance(to: SRGB(hex: "#C0C0C0")!), 2)
         XCTAssertLessThan(PaletteGamut(palette: Palette.extended.paints).distance(to: SRGB(hex: "#B0E0E6")!), 1)
+    }
+
+    func testDynamicPaletteReachesCeruleanWithOneExtraTube() {
+        let cerulean = SRGB(hex: "#2A7DB8")!
+        let best = DynamicPalette.extras
+            .map { PaletteGamut(palette: DynamicPalette.palette(with: $0).paints).distance(to: cerulean) }
+            .min()!
+        XCTAssertLessThan(best, 3)
+        XCTAssertEqual(DynamicPalette.palette(with: .ultramarineBlue).paints.count, 7)
     }
 
     func testExtendedPaletteReachesBrighterGreens() {

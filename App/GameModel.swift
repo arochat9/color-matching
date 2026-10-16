@@ -22,13 +22,8 @@ struct RoundResult: Identifiable {
 final class GameModel: ObservableObject {
     static let lifetimeScoreKey = "lifetimeMatches"
 
-    @Published var paletteID: String {
-        didSet {
-            guard paletteID != oldValue else { return }
-            UserDefaults.standard.set(paletteID, forKey: "paletteID")
-            nextRound()
-        }
-    }
+    /// The seventh tube, picked for each goal from `DynamicPalette.extras`.
+    @Published private(set) var extraPaint: Paint = DynamicPalette.extras[0]
     @Published var goalMode: GoalMode {
         didSet {
             guard goalMode != oldValue else { return }
@@ -56,14 +51,11 @@ final class GameModel: ObservableObject {
     @Published private(set) var goalReach: Double = 0
 
     private var rng: SplitMix64
-    private var solver: RecipeSolver {
-        // Big palettes get 3-paint recipes so submitting stays quick.
-        RecipeSolver(maxPaints: palette.paints.count > 7 ? 3 : 4)
-    }
+    private var solver: RecipeSolver { RecipeSolver(maxPaints: 4) }
     private var recoveryTask: Task<Void, Never>?
     private let persistScore: Bool
 
-    var palette: Palette { Palette.all.first { $0.id == paletteID } ?? .limited }
+    var palette: Palette { DynamicPalette.palette(with: extraPaint) }
 
     var currentRecipe: Recipe {
         Recipe(palette.paints.map { Ingredient(paint: $0, parts: parts[$0.id] ?? 0) })
@@ -73,11 +65,9 @@ final class GameModel: ObservableObject {
 
     init(seed: UInt64? = nil, persistScore: Bool = true) {
         let defaults = UserDefaults.standard
-        let paletteID = defaults.string(forKey: "paletteID") ?? Palette.limited.id
         let mode = defaults.string(forKey: "goalMode").flatMap(GoalMode.init(rawValue:)) ?? .named
         var rng = SplitMix64(seed: seed ?? UInt64.random(in: 0...UInt64.max))
-        let palette = Palette.all.first { $0.id == paletteID } ?? .limited
-        self.paletteID = palette.id
+        let palette = DynamicPalette.palette(with: DynamicPalette.extras[0])
         self.goalMode = mode
         self.challenge = GameModel.makeChallenge(palette: palette, mode: mode, rng: &rng)
         self.rng = rng
@@ -86,9 +76,9 @@ final class GameModel: ObservableObject {
         updateGoalName()
     }
 
-    /// ~1,000 names: ~210 pigment and classic paint names (Cerulean, Burnt Sienna, ...) plus the
-    /// ~800 other names from the XKCD color survey, the names most people actually use.
-    static let colorNames = ColorNameIndex(colors: loadNames("pigmentnames") + loadNames("xkcdnames"))
+    /// Painters' colors: every common artist pigment (by Colour Index code) under its usual tube name,
+    /// plus the classic premixed colors such as Payne's Grey and Sap Green.
+    static let colorNames = ColorNameIndex(colors: loadNames("paintcolors"))
 
     private static func loadNames(_ resource: String) -> [NamedColor] {
         guard let url = Bundle.main.url(forResource: resource, withExtension: "csv"),
@@ -135,10 +125,27 @@ final class GameModel: ObservableObject {
 
     private func updateGoalName() {
         goalName = GoalName(challenge: challenge)
-        // A goal mixed from paints you have is reachable by construction; anything else gets measured.
-        let ownPaints = Set(palette.paints.map(\.id))
-        let mixedFromOwnPaints = challenge.sourceRecipe?.ingredients.allSatisfy { ownPaints.contains($0.paint.id) } ?? false
-        goalReach = mixedFromOwnPaints ? 0 : GameModel.gamut(for: palette).distance(to: challenge.target)
+        let (extra, reach) = GameModel.bestExtra(for: challenge)
+        if extra.id != extraPaint.id { extraPaint = extra }
+        goalReach = reach
+    }
+
+    /// The seventh tube that gets closest to the goal, and how close (ΔE) the palette can then get.
+    static func bestExtra(for challenge: Challenge) -> (Paint, Double) {
+        // A goal mixed from paints is reachable by construction with whichever extra tube it used.
+        if let source = challenge.sourceRecipe {
+            let core = Set(DynamicPalette.core.map(\.id))
+            let extras = source.ingredients.map(\.paint).filter { !core.contains($0.id) }
+            if extras.count <= 1, extras.allSatisfy({ DynamicPalette.extras.contains($0) }) {
+                return (extras.first ?? DynamicPalette.extras[0], 0)
+            }
+        }
+        var best: (Paint, Double) = (DynamicPalette.extras[0], .infinity)
+        for extra in DynamicPalette.extras {
+            let d = gamut(for: DynamicPalette.palette(with: extra)).distance(to: challenge.target)
+            if d < best.1 { best = (extra, d) }
+        }
+        return best
     }
 
     /// True when no mix of this palette gets within "close" range of the goal.
@@ -220,23 +227,6 @@ final class GameModel: ObservableObject {
     var isPastPointOfNoReturn: Bool {
         guard let recovery = recoveryDeltaE, paletteCanReachGoal else { return false }
         return recovery > 3
-    }
-
-    /// How close each palette can get to the current goal, best first, as match percentages.
-    func paletteReach() -> [(palette: Palette, percent: Double)] {
-        Palette.all
-            .map { ($0, Scoring.matchPercent(deltaE: GameModel.gamut(for: $0).distance(to: challenge.target))) }
-            .sorted { $0.1 > $1.1 }
-    }
-
-    func switchPalette(to palette: Palette) {
-        // Keep the same goal; only the paints change.
-        let goal = challenge
-        let practice = isPractice
-        paletteID = palette.id
-        challenge = goal
-        isPractice = practice
-        parts = [:]
     }
 
     private func scheduleRecoveryCheck() {
