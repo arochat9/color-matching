@@ -160,11 +160,24 @@ final class RecoveryTests: XCTestCase {
         XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: palette), 1.5)
     }
 
-    func testTooMuchWhiteCannotBeUndone() {
-        // Deep ultramarine can't be reached once the pile is mostly white (the no-return demo's mix).
+    func testBlackInYellowCannotBeUndone() {
+        // Black dulls yellow for good: even ten times the pile in fresh yellow can't clean it up.
+        let target = Paint.cadmiumYellow.color
+        let current = Recipe([Ingredient(paint: .ivoryBlack, parts: 1), Ingredient(paint: .cadmiumYellow, parts: 2)])
+        XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
+    }
+
+    func testTooMuchWhiteCanBeRescuedWithEnoughPaint() {
+        // A mostly-white pile isn't lost: piling in ultramarine brings it back.
         let target = Paint.ultramarineBlue.color
         let current = Recipe([Ingredient(paint: .ultramarineBlue, parts: 1), Ingredient(paint: .titaniumWhite, parts: 12)])
-        XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
+        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
+    }
+
+    func testPalePinkFromOnePartRose() {
+        let palette = DynamicPalette.palette(with: .permanentRose).paints
+        let current = Recipe([Ingredient(paint: .permanentRose, parts: 1)])
+        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: SRGB(hex: "#F4C2C2")!, palette: palette), 3)
     }
 
     func testLightGraysAndPastelsAreInReach() {
