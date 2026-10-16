@@ -103,18 +103,20 @@ struct ScoreBadge: View {
 
 struct SwatchComparison: View {
     let goal: SRGB
-    let goalName: (name: String, isExact: Bool)?
+    let goalName: GoalName?
     let mix: SRGB?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let goalName {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(goalName.isExact ? "Mix this color" : "Closest color name")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(goalName.name)
-                        .font(.title2.weight(.semibold))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(goalName.headline)
+                        .font(.title3.weight(.semibold))
+                    if let exact = goalName.exact {
+                        Text("Exact name: \(exact)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             HStack(spacing: 12) {

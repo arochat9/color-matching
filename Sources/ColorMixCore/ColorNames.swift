@@ -90,3 +90,20 @@ public extension ChallengeGenerator {
         return closest.map { Challenge(target: $0.0.color, name: $0.0.name) }
     }
 }
+
+public extension ColorNameIndex {
+    /// How `color` differs from the named color it is closest to, e.g. "lighter, duller".
+    /// Returns nil when the difference is too small to mention.
+    static func qualifier(of color: Lab, relativeTo named: Lab) -> String? {
+        var words: [String] = []
+        let dL = color.l - named.l
+        if dL > 4 { words.append("lighter") } else if dL < -4 { words.append("darker") }
+        let dC = color.chroma - named.chroma
+        if dC > 6 { words.append("more vivid") } else if dC < -6 { words.append("duller") }
+        if words.isEmpty, ColorDifference.deltaE2000(color, named) > 3 {
+            let hue = Scoring.hueFamily(color.hue)
+            if Scoring.hueFamily(named.hue) != hue, color.chroma > 8 { words.append("toward \(hue)") }
+        }
+        return words.isEmpty ? nil : words.joined(separator: ", ")
+    }
+}

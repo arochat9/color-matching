@@ -36,7 +36,7 @@ struct ResultView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("\(Int(result.match.matchPercent.rounded()))%")
                     .font(.system(size: 56, weight: .bold, design: .rounded))
-                    .foregroundStyle(result.match.counts ? .green : .primary)
+                    .foregroundStyle(result.match.counts ? Color.green : Color.primary)
                 Text("match").font(.title3).foregroundStyle(.secondary)
                 Spacer()
                 if result.scoredPoint {

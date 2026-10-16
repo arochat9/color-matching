@@ -34,8 +34,7 @@ final class GameModel: ObservableObject {
     @Published private(set) var challenge: Challenge {
         didSet { updateGoalName() }
     }
-    /// The goal's name: exact for named goals, otherwise the nearest name in the list.
-    @Published private(set) var goalName: (name: String, isExact: Bool)?
+    @Published private(set) var goalName: GoalName?
     @Published private(set) var parts: [String: Int] = [:]
     @Published var result: RoundResult?
     @Published private(set) var lifetimeScore: Int
@@ -68,12 +67,16 @@ final class GameModel: ObservableObject {
         updateGoalName()
     }
 
-    /// ~32k names from github.com/meodai/color-names, bundled as colornames.csv.
-    static let colorNames: ColorNameIndex = {
-        guard let url = Bundle.main.url(forResource: "colornames", withExtension: "csv"),
+    /// ~32k names from github.com/meodai/color-names: nearly every color has an exact match, but most are whimsical.
+    static let allNames = loadNames("colornames")
+    /// ~200 pigment and everyday names a painter would know (Cerulean, Burnt Sienna, ...).
+    static let commonNames = loadNames("commonnames")
+
+    private static func loadNames(_ resource: String) -> ColorNameIndex {
+        guard let url = Bundle.main.url(forResource: resource, withExtension: "csv"),
               let csv = try? String(contentsOf: url, encoding: .utf8) else { return ColorNameIndex(colors: []) }
         return ColorNameIndex(csv: csv)
-    }()
+    }
 
     private static var gamuts: [String: PaletteGamut] = [:]
 
@@ -89,7 +92,7 @@ final class GameModel: ObservableObject {
         case .anyHex:
             return ChallengeGenerator.anyHex(using: &rng)
         case .named:
-            if let named = ChallengeGenerator.named(names: colorNames, gamut: gamut(for: palette), using: &rng) {
+            if let named = ChallengeGenerator.named(names: commonNames, gamut: gamut(for: palette), using: &rng) {
                 return named
             }
             return ChallengeGenerator.reachable(palette: palette.paints, using: &rng)
@@ -99,13 +102,7 @@ final class GameModel: ObservableObject {
     }
 
     private func updateGoalName() {
-        if let name = challenge.name {
-            goalName = (name, true)
-        } else if let nearest = GameModel.colorNames.nearest(to: challenge.target) {
-            goalName = (nearest.named.name, nearest.deltaE < 0.5)
-        } else {
-            goalName = nil
-        }
+        goalName = GoalName(challenge: challenge)
     }
 
     func parts(of paint: Paint) -> Int { parts[paint.id] ?? 0 }
@@ -142,7 +139,7 @@ final class GameModel: ObservableObject {
         }
         result = RoundResult(
             target: challenge.target,
-            targetName: goalName.map { $0.isExact ? $0.name : "≈ \($0.name)" },
+            targetName: goalName?.headline,
             guess: guess,
             guessRecipe: currentRecipe.sorted,
             match: match,
@@ -157,6 +154,40 @@ final class GameModel: ObservableObject {
         parts = [:]
         roundScored = false
         challenge = GameModel.makeChallenge(palette: palette, mode: goalMode, rng: &rng)
+    }
+}
+
+/// How a goal is labelled: the nearest common (painter) name, plus the exact name from the big list.
+struct GoalName {
+    let common: String
+    /// e.g. "lighter, duller"; nil when the goal is essentially the common color itself.
+    let qualifier: String?
+    let isExactCommon: Bool
+    /// The closest name in the 32k list, shown in small type. Nil when it would repeat the common name.
+    let exact: String?
+
+    init?(challenge: Challenge) {
+        let lab = challenge.target.lab
+        if let name = challenge.name {
+            common = name
+            qualifier = nil
+            isExactCommon = true
+        } else if let nearest = GameModel.commonNames.nearest(to: challenge.target) {
+            common = nearest.named.name
+            isExactCommon = nearest.deltaE < 1.5
+            qualifier = isExactCommon ? nil : ColorNameIndex.qualifier(of: lab, relativeTo: nearest.named.lab)
+        } else {
+            return nil
+        }
+        let fine = GameModel.allNames.nearest(to: challenge.target)?.named.name
+        exact = fine == common ? nil : fine
+    }
+
+    /// "Cerulean", or "Close to Cerulean (lighter, duller)".
+    var headline: String {
+        if isExactCommon { return common }
+        if let qualifier { return "Close to \(common) (\(qualifier))" }
+        return "Close to \(common)"
     }
 }
 

@@ -136,3 +136,11 @@ final class ColorNameTests: XCTestCase {
         XCTAssertNotNil(challenge?.name)
     }
 }
+
+final class QualifierTests: XCTestCase {
+    func testLighterAndDuller() {
+        let named = Lab(l: 50, a: 40, b: 0)
+        XCTAssertEqual(ColorNameIndex.qualifier(of: Lab(l: 60, a: 20, b: 0), relativeTo: named), "lighter, duller")
+        XCTAssertNil(ColorNameIndex.qualifier(of: Lab(l: 51, a: 41, b: 0), relativeTo: named))
+    }
+}

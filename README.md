@@ -24,7 +24,7 @@ The palette menu (top right) switches between:
 and between three kinds of goals:
 
 - **Mixable colors**: always reachable with your palette, shown with the closest color name.
-- **Named colors**: real named colors (cerulean, lemon yellow, ...) that your palette can get close to.
+- **Named colors**: common painter names (Cerulean, Burnt Sienna, ...) that your palette can get close to.
 - **Any hex code**: fully random. Some can't be matched, which teaches you the palette's limits.
 
 ## How mixing works
@@ -34,8 +34,10 @@ theory on those curves, so they behave like pigment: blue and yellow make green,
 make olive, and white lowers saturation as it lightens. RGB averaging gets all of these wrong.
 The paint curves are hand-tuned approximations, not measured data for a specific brand.
 
-Color names come from [meodai/color-names](https://github.com/meodai/color-names) (MIT, ~32k names),
-in `App/Resources/colornames.csv`.
+Each goal is labelled with the nearest name from a hand-picked list of ~200 pigment and everyday
+names a painter would know (`App/Resources/commonnames.csv`), such as "Close to Cerulean (lighter, duller)".
+Underneath is the exact name from [meodai/color-names](https://github.com/meodai/color-names)
+(MIT, ~32k names, `App/Resources/colornames.csv`), which almost always matches the shade but is often whimsical.
 
 ## Project layout
 
