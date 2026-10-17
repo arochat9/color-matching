@@ -137,6 +137,32 @@ final class ColorNameTests: XCTestCase {
     }
 }
 
+final class GoalPoolTests: XCTestCase {
+    /// The app's real list of painter colors.
+    static let paintColors: ColorNameIndex = {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("App/Resources/paintcolors.csv")
+        return ColorNameIndex(csv: (try? String(contentsOf: url, encoding: .utf8)) ?? "")
+    }()
+
+    func testDefaultPaletteDealsOnlyReachableColors() {
+        let names = GoalPoolTests.paintColors
+        let gamuts = DynamicPalette.extras.map { PaletteGamut(palette: DynamicPalette.palette(with: $0).paints) }
+        let pool = names.reachable(by: gamuts)
+        print("Goal pool: \(pool.count) of \(names.colors.count) colors")
+        XCTAssertGreaterThan(pool.count, names.colors.count / 2)
+        XCTAssertLessThan(pool.count, names.colors.count)
+    }
+
+    func testSmallerPaletteHasASmallerPool() {
+        let names = GoalPoolTests.paintColors
+        let full = names.reachable(by: [PaletteGamut(palette: DynamicPalette.core)])
+        let twoTubes = names.reachable(by: [PaletteGamut(palette: [.titaniumWhite, .ultramarineBlue])])
+        XCTAssertLessThan(twoTubes.count, full.count)
+    }
+}
+
 final class QualifierTests: XCTestCase {
     func testLighterAndDuller() {
         let named = Lab(l: 50, a: 40, b: 0)

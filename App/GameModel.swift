@@ -74,6 +74,11 @@ final class GameModel: ObservableObject {
     private var solver: RecipeSolver { RecipeSolver(maxPaints: palette.paints.count > 8 ? 3 : 4) }
     private var recoveryTask: Task<Void, Never>?
     private var reachTask: Task<Void, Never>?
+    /// The named colors your paints can mix to 90%, which goals are dealt from. Nil until worked out.
+    private var goalPool: [NamedColor]?
+    private var poolTask: Task<Void, Never>?
+    /// A goal set by a screenshot demo, which the pool shouldn't swap out.
+    private var goalIsPinned = false
     private let persistScore: Bool
 
     /// Your tubes, in the usual palette order.
@@ -98,11 +103,12 @@ final class GameModel: ObservableObject {
         self.tubeIDs = tubes
         self.autoExtra = autoExtra
         self.palette = palette
-        self.challenge = GameModel.makeChallenge(palette: palette, rng: &rng)
+        self.challenge = GameModel.makeChallenge(palette: palette, pool: nil, rng: &rng)
         self.rng = rng
         self.persistScore = persistScore
         self.lifetimeScore = persistScore ? defaults.integer(forKey: GameModel.lifetimeScoreKey) : 0
         updateGoalName()
+        updatePool()
     }
 
     /// Painters' colors: every common artist pigment (by Colour Index code) under its usual tube name,
@@ -139,9 +145,10 @@ final class GameModel: ObservableObject {
         return gamut
     }
 
-    private static func makeChallenge(palette: Palette, rng: inout SplitMix64) -> Challenge {
-        // Any name from the full list, including ones the palette can't quite reach.
-        if let named = colorNames.randomElement(using: &rng) {
+    private static func makeChallenge(palette: Palette, pool: [NamedColor]?, rng: inout SplitMix64) -> Challenge {
+        // Only colors your paints can reach, once that's worked out; any name until then.
+        let names = pool.flatMap { $0.isEmpty ? nil : $0 } ?? colorNames.colors
+        if let named = names.randomElement(using: &rng) {
             return Challenge(target: named.color, name: named.name)
         }
         return ChallengeGenerator.reachable(palette: palette.paints, using: &rng)
@@ -159,6 +166,38 @@ final class GameModel: ObservableObject {
         setPalette()
         parts = parts.filter { id, _ in palette.paints.contains { $0.id == id } }
         updateReach()
+        updatePool()
+    }
+
+    /// Works out which named colors these paints can reach, off the main thread. On a fresh
+    /// palette that means sampling mixes with every possible extra tube.
+    private func updatePool() {
+        poolTask?.cancel()
+        goalPool = nil
+        let base = basePaints, autoExtra = autoExtra
+        poolTask = Task.detached(priority: .userInitiated) { [weak self] in
+            let pool = GameModel.reachableColors(base: base, autoExtra: autoExtra)
+            guard !Task.isCancelled else { return }
+            await MainActor.run { self?.applyPool(pool) }
+        }
+    }
+
+    static func reachableColors(base: [Paint], autoExtra: Bool) -> [NamedColor] {
+        let baseIDs = Set(base.map(\.id))
+        let extras = autoExtra ? DynamicPalette.allPaints.filter { !baseIDs.contains($0.id) } : []
+        let palettes = extras.isEmpty
+            ? [makePalette(base: base, extra: nil)]
+            : extras.map { makePalette(base: base, extra: $0) }
+        return colorNames.reachable(by: palettes.map(gamut(for:)))
+    }
+
+    private func applyPool(_ pool: [NamedColor]) {
+        goalPool = pool
+        // The first goal is dealt before the pool is ready. Swap it if it's out of reach and untouched.
+        let untouched = result == nil && !isPractice && !goalIsPinned && !parts.values.contains { $0 > 0 }
+        if untouched, let name = challenge.name, !pool.isEmpty, !pool.contains(where: { $0.name == name }) {
+            nextRound()
+        }
     }
 
     private func setPalette() {
@@ -273,11 +312,13 @@ final class GameModel: ObservableObject {
         goalReach = 0
         roundScored = false
         isPractice = false
-        challenge = GameModel.makeChallenge(palette: palette, rng: &rng)
+        goalIsPinned = false
+        challenge = GameModel.makeChallenge(palette: palette, pool: goalPool, rng: &rng)
     }
 
     /// Swaps in a specific goal without touching the score state (used by the screenshot demos).
     func setDemoChallenge(_ demo: Challenge) {
+        goalIsPinned = true
         challenge = demo
     }
 

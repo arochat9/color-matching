@@ -12,7 +12,7 @@ struct ColorMatchApp: App {
     }
 
     /// Launch arguments used by CI to take repeatable screenshots:
-    /// `-demo mixing|submitted|drops|library|paints|noreturn|neon` and `-seed N`. "drops" is played by ContentView.
+    /// `-demo mixing|submitted|success|drops|library|paints|noreturn|neon` and `-seed N`. "drops" is played by ContentView.
     private static func makeModel() -> GameModel {
         let defaults = UserDefaults.standard
         guard let demo = defaults.string(forKey: "demo") else { return GameModel() }
@@ -40,6 +40,11 @@ struct ColorMatchApp: App {
         }
         if demo == "neon", let neon = GameModel.colorNames.colors.first(where: { $0.name == "Green Gold" }) {
             model.practice(neon)
+        }
+        if demo == "success", let best = RecipeSolver().solve(for: model.challenge.target, palette: model.palette.paints)?.closest {
+            // The best mix the palette can make, so the result screen shows a win.
+            model.setParts(best.recipe)
+            model.submit()
         }
         if demo == "submitted" {
             model.submit()

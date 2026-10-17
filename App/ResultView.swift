@@ -12,15 +12,20 @@ struct ResultView: View {
 
     var body: some View {
         ZStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    header
-                    splitSwatch.reveal(revealed, order: 1)
-                    feedback.reveal(revealed, order: 2)
-                    RecipeTable(columns: recipeColumns).reveal(revealed, order: 3)
-                    buttons.reveal(revealed, order: 4)
+            VStack(spacing: 0) {
+                // The biggest swatch that lets everything fit; scroll only if even the smallest doesn't.
+                ViewThatFits(in: .vertical) {
+                    content(swatchHeight: 240)
+                    content(swatchHeight: 170)
+                    ScrollView { content(swatchHeight: 120) }
                 }
-                .padding()
+                .frame(maxHeight: .infinity, alignment: .top)
+                // Like Submit on the main screen, the next step is always in the same spot.
+                buttons
+                    .reveal(revealed, order: 4)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
             }
             if result.match.counts {
                 ConfettiView(colors: confettiColors)
@@ -32,6 +37,24 @@ struct ResultView: View {
             withAnimation(.easeOut(duration: 1.0)) { shownPercent = result.match.matchPercent }
             revealed = true
         }
+    }
+
+    private func content(swatchHeight: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            gap
+            splitSwatch.frame(height: swatchHeight).reveal(revealed, order: 1)
+            gap
+            feedback.reveal(revealed, order: 2)
+            gap
+            RecipeTable(columns: recipeColumns).reveal(revealed, order: 3)
+        }
+        .padding()
+    }
+
+    /// Room between sections that grows a little when there is space to spare.
+    private var gap: some View {
+        Spacer(minLength: 16).frame(maxHeight: 32)
     }
 
     /// The simplest recipe, the closest one when it's meaningfully better, then yours.
@@ -57,8 +80,10 @@ struct ResultView: View {
                     .font(.system(size: 60, weight: .heavy, design: .rounded))
                     .foregroundStyle(result.match.counts ? AnyShapeStyle(theme.success.gradient) : AnyShapeStyle(theme.ink))
                     .contentTransition(.numericText(value: shownPercent))
+                    .lineLimit(1)
+                    .fixedSize()
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(result.match.verdict).font(.title3.weight(.bold))
+                    Text(result.match.verdict).font(.title3.weight(.bold)).lineLimit(1).minimumScaleFactor(0.8)
                     if let name = result.targetName {
                         Text(name).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
                     }
@@ -98,7 +123,6 @@ struct ResultView: View {
                 SwatchLabel(text: "Yours \(result.guess.hex)")
             }
         }
-        .frame(height: 96)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
