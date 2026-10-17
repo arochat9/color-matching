@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var model: GameModel
+    /// Back to the home page.
+    var onHome: (() -> Void)?
     @State private var splashes: [Splash] = []
     /// Only ever goes up, so the swatch jiggles once per drop (not again when a splash is cleaned up).
     @State private var dropCount = 0
@@ -42,6 +44,9 @@ struct ContentView: View {
             .navigationTitle("Color Match")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if let onHome { HomeButton(action: onHome) }
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     ScoreBadge(score: model.lifetimeScore)
                         .fixedSize()

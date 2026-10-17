@@ -3,12 +3,56 @@ import SwiftUI
 @main
 struct ColorMatchApp: App {
     @StateObject private var model = ColorMatchApp.makeModel()
+    @StateObject private var theory = ColorMatchApp.makeTheoryModel()
+    @State private var game = ColorMatchApp.demoGame
 
     var body: some Scene {
         WindowGroup {
-            ContentView(model: model)
+            HomeView(model: model, theory: theory, onPlay: { game = $0 }, howTo: ColorMatchApp.demoHowTo)
+                .fullScreenCover(item: $game) { game in
+                    Group {
+                        switch game {
+                        case .mix: ContentView(model: model, onHome: { self.game = nil })
+                        case .theory: TheoryView(model: theory, onHome: { self.game = nil })
+                        }
+                    }
+                    .themed(.sketchbook)
+                }
                 .themed(.sketchbook)
         }
+    }
+
+    /// CI screenshots open straight into a game: theory demos into Color Theory, the rest into mixing.
+    /// `-demo home` shows the home page, and `-demo howto-mix|howto-theory` its how-to-play sheet.
+    private static var demoGame: Game? {
+        guard let demo = UserDefaults.standard.string(forKey: "demo") else { return nil }
+        if demo == "home" || demo.hasPrefix("howto") { return nil }
+        return demo.hasPrefix("theory") ? .theory : .mix
+    }
+
+    private static var demoHowTo: Game? {
+        switch UserDefaults.standard.string(forKey: "demo") {
+        case "howto-mix": .mix
+        case "howto-theory": .theory
+        default: nil
+        }
+    }
+
+    /// `-demo theory-fit|theory-fit-answered|theory-hue|theory-hue-answered` and `-seed N`, for CI screenshots.
+    private static func makeTheoryModel() -> TheoryModel {
+        let defaults = UserDefaults.standard
+        guard let demo = defaults.string(forKey: "demo"), demo.hasPrefix("theory") else { return TheoryModel() }
+        let model = TheoryModel(seed: UInt64(max(defaults.integer(forKey: "seed"), 1)))
+        if demo.hasPrefix("theory-hue") {
+            model.mode = .hue
+            // Close but not quite, so the result shows tips.
+            let target = model.huePuzzle.target
+            model.pick = WheelColor(hue: target.hue + 14, saturation: target.saturation - 0.15, brightness: target.brightness + 0.05)
+            if demo == "theory-hue-answered" { model.submitHue() }
+        } else if demo == "theory-fit-answered", let wrong = model.fitPuzzle.options.first(where: { $0.kind == .offTone }) {
+            model.choose(wrong)
+        }
+        return model
     }
 
     /// Launch arguments used by CI to take repeatable screenshots:
