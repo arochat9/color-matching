@@ -24,6 +24,16 @@ def asc_api_key
   app_store_connect_api_key(key_id: KEY_ID, issuer_id: ISSUER_ID, key_content: key_content)
 end
 
+# App Review contact. Kept in fastlane/.env, not metadata/, because this repo is public.
+# A new app has no review record until deliver creates one from these.
+def review_info
+  {
+    first_name: ENV["REVIEW_FIRST_NAME"], last_name: ENV["REVIEW_LAST_NAME"],
+    email_address: ENV["REVIEW_EMAIL"], phone_number: ENV["REVIEW_PHONE"],
+    demo_required: false
+  }.compact
+end
+
 def take_screenshots
   sh(File.join(ROOT, "scripts/app_store_screenshots.sh"), File.join(FASTLANE_DIR, "screenshots/en-US"))
 end
@@ -56,6 +66,7 @@ platform :ios do
       skip_binary_upload: true,
       skip_screenshots: true,
       app_rating_config_path: File.join(FASTLANE_DIR, "rating_config.json"),
+      app_review_information: review_info,
       force: true,
       run_precheck_before_submit: false
     )
@@ -118,6 +129,7 @@ platform :ios do
       skip_binary_upload: true,
       overwrite_screenshots: true,
       app_rating_config_path: File.join(FASTLANE_DIR, "rating_config.json"),
+      app_review_information: review_info,
       submit_for_review: submit,
       automatic_release: true,
       force: true,
