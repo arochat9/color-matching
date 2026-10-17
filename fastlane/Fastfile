@@ -99,7 +99,6 @@ platform :ios do
       output_directory: File.join(ROOT, "build"),
       xcargs: "#{auth} DEVELOPMENT_TEAM=#{TEAM_ID} CODE_SIGN_STYLE=Automatic " \
               "MARKETING_VERSION=#{version} CURRENT_PROJECT_VERSION=#{build_number}",
-      export_xcargs: auth,
       export_options: { signingStyle: "automatic", teamID: TEAM_ID, uploadSymbols: true }
     )
 
