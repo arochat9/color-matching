@@ -59,12 +59,12 @@ struct ResultView: View {
 
     /// The simplest recipe, the closest one when it's meaningfully better, then yours.
     private var recipeColumns: [RecipeTable.Column] {
-        var columns = [RecipeTable.Column(title: "Simplest", recipe: result.simplest.recipe, color: result.simplest.color)]
+        var columns = [RecipeTable.Column(title: "Simplest", recipe: result.simplest.recipe, color: result.simplest.color, percent: Scoring.matchPercent(deltaE: result.simplest.deltaE))]
         if result.closest.recipe != result.simplest.recipe,
            result.closest.deltaE < result.simplest.deltaE - 0.3 {
-            columns.append(.init(title: "Closest", recipe: result.closest.recipe, color: result.closest.color))
+            columns.append(.init(title: "Closest", recipe: result.closest.recipe, color: result.closest.color, percent: Scoring.matchPercent(deltaE: result.closest.deltaE)))
         }
-        columns.append(.init(title: "Yours", recipe: result.guessRecipe, color: result.guess))
+        columns.append(.init(title: "Yours", recipe: result.guessRecipe, color: result.guess, percent: result.match.matchPercent))
         return columns
     }
 
@@ -86,6 +86,7 @@ struct ResultView: View {
                     Text(result.match.verdict).font(.title3.weight(.bold)).lineLimit(1).minimumScaleFactor(0.8)
                     if let name = result.targetName {
                         Text(name).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 Spacer(minLength: 0)
@@ -104,7 +105,12 @@ struct ResultView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(theme.info)
             }
-            if result.closest.deltaE > 2 {
+            if result.match.deltaE <= result.closest.deltaE + 0.5 {
+                // Nobody can do better with these paints, even when the percentage isn't 100.
+                Label("As close as these paints can get", systemImage: "checkmark.seal.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.success)
+            } else if result.closest.deltaE > 2 {
                 Label("These paints can reach \(Int(result.bestPossiblePercent.rounded()))% at best", systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(theme.warning)
@@ -166,6 +172,8 @@ struct RecipeTable: View {
         let title: String
         let recipe: Recipe
         let color: SRGB
+        /// How well this recipe matches the goal.
+        let percent: Double
     }
 
     let columns: [Column]
@@ -187,6 +195,7 @@ struct RecipeTable: View {
                             .fill(column.color.swiftUIColor.gradient)
                             .frame(width: 30, height: 30)
                         Text(column.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        Text("\(Int(column.percent.rounded()))% match").font(.caption2.monospacedDigit()).foregroundStyle(.tertiary)
                     }
                     .frame(maxWidth: .infinity)
                 }

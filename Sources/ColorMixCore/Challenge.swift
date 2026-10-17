@@ -64,8 +64,8 @@ public enum Scoring {
 
     public static func verdict(deltaE: Double) -> String {
         switch deltaE {
-        case ..<1: return "Perfect"
-        case ..<3: return "Very close"
+        // 90% or better passes; a perfect 100% almost never happens, so it gets no word of its own.
+        case ..<3: return "Match"
         case ..<6: return "Close"
         case ..<12: return "Getting there"
         default: return "Way off"
