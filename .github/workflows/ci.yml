@@ -56,11 +56,12 @@ jobs:
           }
           shoot 1-mixing -demo mixing -seed 3
           shoot 2-result -demo submitted -seed 3
-          shoot 3-named-goal -demo mixing -seed 5 -goalMode named
+          shoot 3-named-goal -demo mixing -seed 5
           shoot 6-library -demo library -seed 1
           shoot 7-no-return -demo noreturn -seed 3
           shoot 8-cant-mix -demo neon -seed 1
-          shoot 9-theory-fit -demo theory-fit -seed 2
+          shoot 9-your-paints -demo paints -seed 1
+          shoot 9a-theory-fit -demo theory-fit -seed 2
           shoot 10-theory-fit-answered -demo theory-fit-answered -seed 2
           shoot 11-theory-hue -demo theory-hue -seed 4
           shoot 12-theory-hue-answered -demo theory-hue-answered -seed 4

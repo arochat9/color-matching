@@ -22,22 +22,22 @@ public struct Paint: Identifiable, Hashable, Sendable {
 
 public extension Paint {
     static let titaniumWhite = Paint(
-        id: "titanium-white", name: "Titanium White", note: "Lightens and cools",
+        id: "titanium-white", name: "White", note: "Titanium white: lightens and cools",
         reflectance: Spectral.curve { _ in 0.92 }
     )
 
     static let ivoryBlack = Paint(
-        id: "ivory-black", name: "Ivory Black", note: "Darkens; with yellow it makes olive greens",
+        id: "ivory-black", name: "Black", note: "Ivory black: darkens; with yellow it makes olive greens",
         reflectance: Spectral.curve { 0.016 + Spectral.sigmoid($0, center: 600, width: 40, low: 0, high: 0.004) }
     )
 
     static let cadmiumYellow = Paint(
-        id: "cadmium-yellow", name: "Cadmium Yellow", note: "Warm primary yellow",
+        id: "cadmium-yellow", name: "Yellow", note: "Cadmium yellow: warm primary yellow",
         reflectance: Spectral.curve { Spectral.sigmoid($0, center: 515, width: 12, low: 0.04, high: 0.88) }
     )
 
     static let cadmiumRed = Paint(
-        id: "cadmium-red", name: "Cadmium Red", note: "Warm primary red",
+        id: "cadmium-red", name: "Red", note: "Cadmium red: warm primary red",
         reflectance: Spectral.curve { Spectral.sigmoid($0, center: 600, width: 10, low: 0.04, high: 0.80) }
     )
 
@@ -62,7 +62,7 @@ public extension Paint {
     )
 
     static let phthaloBlue = Paint(
-        id: "phthalo-blue", name: "Phthalo Blue", note: "Very strong, clean cyan-leaning blue",
+        id: "phthalo-blue", name: "Blue", note: "Phthalo blue: very strong, clean cyan-leaning blue",
         strength: 1.6,
         reflectance: Spectral.curve {
             0.015 + 0.42 * Spectral.lobe($0, center: 468, left: 22, right: 36)
@@ -71,7 +71,7 @@ public extension Paint {
     )
 
     static let quinacridoneMagenta = Paint(
-        id: "quinacridone-magenta", name: "Quinacridone Magenta", note: "Clean cool magenta for pinks and purples",
+        id: "quinacridone-magenta", name: "Magenta", note: "Quinacridone magenta: clean cool magenta for pinks and purples",
         strength: 1.2,
         reflectance: Spectral.curve {
             Spectral.sigmoid($0, center: 605, width: 14, low: 0.03, high: 0.72)
@@ -199,6 +199,9 @@ public enum DynamicPalette {
         .ultramarineBlue, .cadmiumOrange, .alizarinCrimson, .yellowOchre, .burntSienna, .permanentRose, .naplesYellow,
         .burntUmber, .dioxazinePurple, .ceruleanBlue, .cobaltBlue, .phthaloGreen, .lemonYellow, .viridian,
     ]
+
+    /// Every tube you can put on your palette.
+    public static let allPaints: [Paint] = core + extras
 
     public static func palette(with extra: Paint) -> Palette {
         Palette(id: "dynamic-\(extra.id)", name: "Core + \(extra.name)", summary: "", paints: core + [extra])

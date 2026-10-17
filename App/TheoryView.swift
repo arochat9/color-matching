@@ -24,6 +24,21 @@ struct TheoryView: View {
                 }
                 .padding()
             }
+            .safeAreaInset(edge: .bottom) {
+                if isAnswered {
+                    Button {
+                        withAnimation(.spring(duration: 0.5, bounce: 0.3)) {
+                            model.mode == .fit ? model.nextFit() : model.nextHue()
+                        }
+                    } label: {
+                        Label("Next set", systemImage: "arrow.right").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(BouncyButtonStyle(prominent: true))
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .background(theme.canvas)
+                }
+            }
             .background(theme.canvas.ignoresSafeArea())
             .navigationTitle("Color Theory")
             .navigationBarTitleDisplayMode(.inline)
@@ -56,6 +71,11 @@ struct TheoryView: View {
             }
         }
     }
+
+    /// The next-set button stays pinned to the bottom once a set is answered.
+    private var isAnswered: Bool {
+        model.mode == .fit ? model.fitPick != nil : model.hueGrade != nil
+    }
 }
 
 /// Back to the home page, at the top left of each game.
@@ -81,21 +101,18 @@ struct FitQuizView: View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Which color fits the set?").font(.title3.weight(.bold))
-                Text("Look at where the hues sit on the color wheel, and at how bright or soft they are.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                if model.fitPick == nil {
+                    Text("Look at where the hues sit on the color wheel, and at how bright or soft they are.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
             ColorSet(colors: puzzle.shown, slotTitle: model.fitPick == nil ? "?" : "Fits", slot: model.fitPick.map { _ in puzzle.answer.color })
+                .frame(height: model.fitPick == nil ? 110 : 80)
             options
             if let pick = model.fitPick {
                 explanation(for: pick)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                Button {
-                    withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.nextFit() }
-                } label: {
-                    Label("Next set", systemImage: "arrow.right").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(BouncyButtonStyle(prominent: true))
             }
         }
         .sensoryFeedback(trigger: model.fitPick?.id) { _, new in
@@ -132,7 +149,7 @@ struct FitQuizView: View {
                 }
                 Spacer(minLength: 0)
                 HarmonyWheel(dots: puzzle.shown.map { HarmonyWheel.Dot(color: $0, style: .shown) } + [HarmonyWheel.Dot(color: puzzle.answer.color, style: .answer)])
-                    .frame(width: 130, height: 130)
+                    .frame(width: 110, height: 110)
             }
             Text(puzzle.explanation(for: puzzle.answer)).font(.subheadline)
             if !correct {
@@ -160,8 +177,8 @@ private struct OptionChip: View {
 
     var body: some View {
         Circle()
-            .fill(option.color.swiftUIColor.gradient)
-            .overlay(Circle().strokeBorder(.white.opacity(0.5), lineWidth: 1))
+            .fill(option.color.swiftUIColor)
+            .overlay(Circle().strokeBorder(.primary.opacity(0.12), lineWidth: 1))
             .overlay {
                 if answered && (isAnswer || isPick) {
                     Image(systemName: isAnswer ? "checkmark" : "xmark")
@@ -181,7 +198,6 @@ private struct OptionChip: View {
             .frame(maxWidth: .infinity)
             .scaleEffect(answered && isAnswer ? 1.08 : 1)
             .opacity(answered && !isAnswer && !isPick ? 0.4 : 1)
-            .shadow(color: option.color.swiftUIColor.opacity(0.4), radius: 6, y: 3)
     }
 }
 
@@ -196,11 +212,14 @@ struct HueQuizView: View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Find the \(puzzle.family.rawValue) that fits").font(.title3.weight(.bold))
-                Text("Pick a \(puzzle.family.rawValue) that belongs with these colors, in hue and in tone.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                if model.hueGrade == nil {
+                    Text("Pick a \(puzzle.family.rawValue) that belongs with these colors, in hue and in tone.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
             ColorSet(colors: puzzle.shown, slotTitle: "Yours", slot: model.pick)
+                .frame(height: model.hueGrade == nil ? 110 : 80)
             if let grade = model.hueGrade {
                 result(grade)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -227,24 +246,28 @@ struct HueQuizView: View {
 
     private func result(_ grade: HueGrade) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("\(Int(grade.percent.rounded()))%")
-                    .font(.system(size: 56, weight: .heavy, design: .rounded))
-                    .foregroundStyle(grade.percent >= 85 ? AnyShapeStyle(theme.success.gradient) : AnyShapeStyle(theme.ink))
-                Text("fit").font(.title3).foregroundStyle(.secondary)
-            }
-            HStack(spacing: 0) {
-                ZStack(alignment: .bottomLeading) {
-                    Rectangle().fill(puzzle.target.swiftUIColor)
-                    caption("Ideal")
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("\(Int(grade.percent.rounded()))%")
+                        .font(.system(size: 44, weight: .heavy, design: .rounded))
+                        .foregroundStyle(grade.percent >= 85 ? AnyShapeStyle(theme.success) : AnyShapeStyle(theme.ink))
+                        .lineLimit(1)
+                        .fixedSize()
+                    Text("fit").font(.subheadline).foregroundStyle(.secondary)
                 }
-                ZStack(alignment: .bottomTrailing) {
-                    Rectangle().fill(model.pick.swiftUIColor)
-                    caption("Yours")
+                HStack(spacing: 0) {
+                    ZStack(alignment: .bottomLeading) {
+                        Rectangle().fill(puzzle.target.swiftUIColor)
+                        caption("Ideal")
+                    }
+                    ZStack(alignment: .bottomTrailing) {
+                        Rectangle().fill(model.pick.swiftUIColor)
+                        caption("Yours")
+                    }
                 }
+                .frame(height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
-            .frame(height: 90)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(grade.tips, id: \.self) { tip in
                     Label(tip, systemImage: "lightbulb").font(.subheadline)
@@ -261,7 +284,7 @@ struct HueQuizView: View {
                         HarmonyWheel.Dot(color: puzzle.target, style: .answer),
                         HarmonyWheel.Dot(color: model.pick, style: .pick),
                     ])
-                    .frame(width: 130, height: 130)
+                    .frame(width: 110, height: 110)
                 }
                 Text(puzzle.explanation).font(.subheadline)
                 if let other = grade.alsoFits {
@@ -273,12 +296,6 @@ struct HueQuizView: View {
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(theme.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-            Button {
-                withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.nextHue() }
-            } label: {
-                Label("Next set", systemImage: "arrow.right").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(BouncyButtonStyle(prominent: true))
         }
     }
 
@@ -287,7 +304,8 @@ struct HueQuizView: View {
             .font(.caption2.weight(.semibold))
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
-            .background(.ultraThinMaterial, in: Capsule())
+            .background(.black.opacity(0.3), in: Capsule())
+            .foregroundStyle(.white)
             .padding(8)
     }
 }

@@ -50,8 +50,8 @@ struct HomeView: View {
                     HStack(spacing: -10) {
                         ForEach(DynamicPalette.core) { paint in
                             PaintBlob(seed: paint.blobSeed)
-                                .fill(paint.color.swiftUIColor.gradient)
-                                .overlay(PaintBlob(seed: paint.blobSeed).stroke(.black.opacity(0.08), lineWidth: 1))
+                                .fill(paint.color.swiftUIColor)
+                                .overlay(PaintBlob(seed: paint.blobSeed).stroke(.primary.opacity(0.18), lineWidth: 1))
                                 .frame(width: 44, height: 44)
                         }
                     }

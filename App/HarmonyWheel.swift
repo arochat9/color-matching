@@ -53,13 +53,11 @@ struct HarmonyWheel: View {
             Circle().fill(dot.color.swiftUIColor)
                 .overlay(Circle().strokeBorder(.white, lineWidth: 3))
                 .frame(width: 22, height: 22)
-                .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
         case .answer:
             Circle().fill(dot.color.swiftUIColor)
                 .overlay(Circle().strokeBorder(.white, lineWidth: 3))
                 .overlay(Circle().strokeBorder(theme.ink, lineWidth: 1.5).padding(-3))
                 .frame(width: 26, height: 26)
-                .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
         case .pick:
             Circle().fill(dot.color.swiftUIColor)
                 .overlay(Circle().strokeBorder(theme.ink, style: StrokeStyle(lineWidth: 2, dash: [3, 2])))
@@ -99,7 +97,6 @@ struct ToneSquare: View {
                 Circle()
                     .fill(WheelColor(hue: hue, saturation: saturation, brightness: brightness).swiftUIColor)
                     .overlay(Circle().strokeBorder(.white, lineWidth: 3))
-                    .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
                     .frame(width: 30, height: 30)
                     .position(x: CGFloat(saturation) * geo.size.width, y: CGFloat(1 - brightness) * geo.size.height)
             }
@@ -141,7 +138,6 @@ struct HueStrip: View {
                 Circle()
                     .fill(WheelColor(hue: hue, saturation: 1, brightness: 1).swiftUIColor)
                     .overlay(Circle().strokeBorder(.white, lineWidth: 3))
-                    .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
                     .frame(width: 34, height: 34)
                     .position(x: CGFloat((position - range.lowerBound) / span) * geo.size.width, y: geo.size.height / 2)
             }
@@ -192,18 +188,18 @@ struct ColorSet: View {
                         .font(.caption2.weight(.semibold))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
-                        .background(.ultraThinMaterial, in: Capsule())
+                        .background(.black.opacity(0.3), in: Capsule())
+                        .foregroundStyle(.white)
                         .padding(6)
                 }
             }
         }
-        .frame(height: 110)
+        .frame(maxHeight: 110)
     }
 
     private func chip(_ color: Color) -> some View {
         RoundedRectangle(cornerRadius: 20, style: .continuous)
             .fill(color)
-            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.white.opacity(0.35), lineWidth: 1))
-            .shadow(color: color.opacity(0.35), radius: 10, y: 6)
+            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.primary.opacity(0.1), lineWidth: 1))
     }
 }

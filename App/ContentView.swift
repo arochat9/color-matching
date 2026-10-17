@@ -5,26 +5,40 @@ struct ContentView: View {
     /// Back to the home page.
     var onHome: (() -> Void)?
     @State private var splashes: [Splash] = []
+    /// Only ever goes up, so the swatch jiggles once per drop (not again when a splash is cleaned up).
+    @State private var dropCount = 0
     @State private var showLibrary = false
+    @State private var showPalette = false
     @AppStorage("showWarnings") private var showWarnings = true
     @Environment(\.theme) private var theme
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 16) {
                     SwatchComparison(
                         goal: model.challenge.target,
                         goalName: model.goalName,
                         mix: model.mixColor,
-                        splashes: splashes
+                        splashes: splashes,
+                        dropCount: dropCount
                     )
+                    // Shorter swatches while a warning shows, so the paints still fit above Submit.
+                    .environment(\.swatchHeight, Layout.swatchHeight(warning: showsWarning))
                     goalNotes
                     MixBar(recipe: model.currentRecipe)
                     paintList
-                    actions
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.top, 10)
+            }
+            // Submit stays on screen, however many paints you've set out.
+            .safeAreaInset(edge: .bottom) {
+                actions
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+                    .background(theme.canvas)
             }
             .background(backdrop)
             .navigationTitle("Color Match")
@@ -35,6 +49,8 @@ struct ContentView: View {
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     ScoreBadge(score: model.lifetimeScore)
+                        .fixedSize()
+                        .padding(.horizontal, 6)
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
@@ -53,6 +69,12 @@ struct ContentView: View {
                     withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.practice(color) }
                 }
                 .background(theme.canvas.ignoresSafeArea())
+            }
+            .sheet(isPresented: $showPalette) {
+                PaletteView(model: model)
+                    .themed(theme)
+                    .presentationBackground(theme.canvas)
+                    .presentationDetents([.medium, .large])
             }
             .sheet(item: $model.result) { result in
                 ResultView(
@@ -105,6 +127,10 @@ struct ContentView: View {
         .animation(.spring(duration: 0.4), value: model.isPastPointOfNoReturn)
     }
 
+    private var showsWarning: Bool {
+        showWarnings && (model.goalIsOutOfReach || model.isPastPointOfNoReturn)
+    }
+
     private var backdrop: some View {
         theme.canvas.ignoresSafeArea()
     }
@@ -112,6 +138,7 @@ struct ContentView: View {
     private func addDrop(of paint: Paint) {
         let splash = Splash(color: paint.color.swiftUIColor)
         splashes.append(splash)
+        dropCount += 1
         withAnimation(.easeInOut(duration: 0.45).delay(0.18)) {
             model.add(paint)
         }
@@ -123,11 +150,25 @@ struct ContentView: View {
 
     private var paintList: some View {
         VStack(spacing: 0) {
+            HStack {
+                Text("Your paints").font(.subheadline.weight(.semibold))
+                Spacer()
+                Button {
+                    showPalette = true
+                } label: {
+                    Label("Change", systemImage: "slider.horizontal.3")
+                        .font(.footnote.weight(.semibold))
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 2)
             ForEach(model.palette.paints) { paint in
                 PaintRow(
                     paint: paint,
                     parts: model.parts(of: paint),
-                    isPickedForGoal: paint.id == model.extraPaint.id,
+                    isPickedForGoal: paint.id == model.extraPaint?.id,
                     onAdd: { addDrop(of: paint) },
                     onRemove: { withAnimation(.easeInOut(duration: 0.3)) { model.remove(paint) } }
                 )
@@ -159,10 +200,10 @@ struct ContentView: View {
 
     private var settingsMenu: some View {
         Menu {
-            Picker("Goals", selection: $model.goalMode) {
-                ForEach(GoalMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
-                }
+            Button {
+                showPalette = true
+            } label: {
+                Label("Change paints…", systemImage: "slider.horizontal.3")
             }
             Toggle("Mixing warnings", isOn: $showWarnings)
         } label: {
@@ -172,9 +213,10 @@ struct ContentView: View {
         }
     }
 
-    /// `-demo drops` (used by CI): drip the goal's own recipe in, one drop at a time, then submit.
+    /// `-demo library|paints` open those screens. `-demo drops` (used by CI): drip the goal's own recipe in, one drop at a time, then submit.
     private func playDemoDropsIfRequested() async {
         if UserDefaults.standard.string(forKey: "demo") == "library" { showLibrary = true }
+        if UserDefaults.standard.string(forKey: "demo") == "paints" { showPalette = true }
         guard UserDefaults.standard.string(forKey: "demo") == "drops",
               let recipe = model.challenge.sourceRecipe else { return }
         try? await Task.sleep(for: .seconds(1))
@@ -216,12 +258,16 @@ struct SwatchComparison: View {
     let goalName: GoalName?
     let mix: SRGB?
     let splashes: [Splash]
+    let dropCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let goalName {
                 Text(goalName.headline)
                     .font(.title2.weight(.bold))
+                    // One line, so a long name plus a warning still fits without scrolling.
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .id(goalName.headline)
                     .transition(.push(from: .trailing).combined(with: .opacity))
             }
@@ -229,7 +275,7 @@ struct SwatchComparison: View {
                 Swatch(title: "Goal", color: goal, caption: goal.hex)
                     .id(goal.hex)
                     .transition(.scale(scale: 0.6).combined(with: .opacity))
-                Swatch(title: "Your mix", color: mix, caption: mix?.hex ?? "Tap + to add paint", splashes: splashes)
+                Swatch(title: "Your mix", color: mix, caption: mix?.hex ?? "Tap + to add paint", splashes: splashes, dropCount: dropCount)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -237,14 +283,14 @@ struct SwatchComparison: View {
 }
 
 struct Swatch: View {
+    @Environment(\.swatchHeight) private var swatchHeight
     let title: String
     let color: SRGB?
     let caption: String
     var splashes: [Splash] = []
-    @Environment(\.theme) private var theme
-
     /// Bumps each time a drop lands so the swatch can jiggle.
-    private var dropCount: Int { splashes.count }
+    var dropCount = 0
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -260,8 +306,8 @@ struct Swatch: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(.white.opacity(0.35), lineWidth: 1))
-            .shadow(color: (color?.swiftUIColor ?? .clear).opacity(0.45), radius: 14, y: 8)
+            // Matte: a hairline edge for separation, no glow.
+            .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(.primary.opacity(0.1), lineWidth: 1))
             // Splashes sit outside the clip so droplets can fly past the edge.
             .overlay {
                 ForEach(splashes) { splash in
@@ -269,7 +315,7 @@ struct Swatch: View {
                 }
             }
             .zIndex(1)
-            .frame(height: 160)
+            .frame(height: swatchHeight)
             .phaseAnimator([1.0, 1.06, 0.98, 1.0], trigger: dropCount) { content, scale in
                 content.scaleEffect(scale)
             } animation: { _ in
@@ -316,9 +362,9 @@ struct PaintRow: View {
         HStack(spacing: 12) {
             Button(action: onAdd) {
                 PaintBlob(seed: paint.blobSeed)
-                    .fill(paint.color.swiftUIColor.gradient)
-                    .overlay(PaintBlob(seed: paint.blobSeed).stroke(.black.opacity(0.08), lineWidth: 1))
-                    .frame(width: 44, height: 44)
+                    .fill(paint.color.swiftUIColor)
+                    .overlay(PaintBlob(seed: paint.blobSeed).stroke(.primary.opacity(0.18), lineWidth: 1))
+                    .frame(width: 40, height: 40)
                     .phaseAnimator([1.0, 1.25, 0.95, 1.0], trigger: parts) { content, scale in
                         content.scaleEffect(scale)
                     } animation: { _ in
@@ -352,7 +398,7 @@ struct PaintRow: View {
         }
         .buttonStyle(.borderless)
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.vertical, Layout.isShortScreen ? 3 : 5)
         .sensoryFeedback(.impact(weight: .light), trigger: parts)
     }
 
@@ -360,6 +406,15 @@ struct PaintRow: View {
     private var isVeryLight: Bool { paint.color.lab.l > 85 }
     private var plusCircle: Color { isVeryLight ? Color.gray.opacity(0.5) : paint.color.swiftUIColor }
     private var plusGlyph: Color { .white }
+}
+
+/// Shorter phones (iPhone 16e/SE-sized) get smaller swatches and tighter rows so nothing scrolls.
+enum Layout {
+    static let isShortScreen = UIScreen.main.bounds.height < 860
+
+    static func swatchHeight(warning: Bool) -> CGFloat {
+        isShortScreen ? 84 : warning ? 76 : 112
+    }
 }
 
 private extension View {
@@ -397,4 +452,8 @@ struct WarningBanner<Action: View>: View {
         .background(tint.opacity(0.12), in: Capsule())
         .transition(.scale(scale: 0.9).combined(with: .opacity))
     }
+}
+
+extension EnvironmentValues {
+    @Entry var swatchHeight: CGFloat = 112
 }
