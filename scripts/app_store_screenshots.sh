@@ -3,6 +3,7 @@
 # (6.9" display, the size App Store Connect requires) into the given folder.
 set -euo pipefail
 OUT=${1:-fastlane/screenshots/en-US}
+mkdir -p "$OUT" && OUT=$(cd "$OUT" && pwd)
 cd "$(dirname "$0")/.."
 
 xcodebuild -project ColorMatch.xcodeproj -target ColorMatch -sdk iphonesimulator -configuration Release \
