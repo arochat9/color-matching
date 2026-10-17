@@ -78,7 +78,7 @@ struct ResultView: View {
             HStack(alignment: .center, spacing: 14) {
                 Text("\(Int(shownPercent.rounded()))%")
                     .font(.system(size: 60, weight: .heavy, design: .rounded))
-                    .foregroundStyle(result.match.counts ? AnyShapeStyle(theme.success.gradient) : AnyShapeStyle(theme.ink))
+                    .foregroundStyle(result.match.counts ? AnyShapeStyle(theme.success) : AnyShapeStyle(theme.ink))
                     .contentTransition(.numericText(value: shownPercent))
                     .lineLimit(1)
                     .fixedSize()
@@ -161,7 +161,8 @@ private struct SwatchLabel: View {
             .font(.caption2.monospaced())
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
-            .background(.ultraThinMaterial, in: Capsule())
+            .background(.black.opacity(0.3), in: Capsule())
+            .foregroundStyle(.white)
             .padding(8)
     }
 }
@@ -192,7 +193,8 @@ struct RecipeTable: View {
                 ForEach(columns, id: \.title) { column in
                     VStack(spacing: 4) {
                         PaintBlob(seed: 7)
-                            .fill(column.color.swiftUIColor.gradient)
+                            .fill(column.color.swiftUIColor)
+                            .overlay(PaintBlob(seed: 7).stroke(.primary.opacity(0.18), lineWidth: 1))
                             .frame(width: 30, height: 30)
                         Text(column.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                         Text("\(Int(column.percent.rounded()))% match").font(.caption2.monospacedDigit()).foregroundStyle(.tertiary)
@@ -204,8 +206,8 @@ struct RecipeTable: View {
                 GridRow {
                     HStack(spacing: 8) {
                         PaintBlob(seed: paint.blobSeed)
-                            .fill(paint.color.swiftUIColor.gradient)
-                            .overlay(PaintBlob(seed: paint.blobSeed).stroke(.black.opacity(0.08), lineWidth: 1))
+                            .fill(paint.color.swiftUIColor)
+                            .overlay(PaintBlob(seed: paint.blobSeed).stroke(.primary.opacity(0.18), lineWidth: 1))
                             .frame(width: 24, height: 24)
                         Text(paint.name).font(.subheadline).lineLimit(1).minimumScaleFactor(0.8)
                     }

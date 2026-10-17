@@ -301,14 +301,8 @@ struct Swatch: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(.white.opacity(0.35), lineWidth: 1))
-            // A glow drawn once as a blurred shape behind the swatch, cheaper than .shadow while it jiggles.
-            .background {
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill((color?.swiftUIColor ?? .clear).opacity(0.45))
-                    .offset(y: 8)
-                    .blur(radius: 14)
-            }
+            // Matte: a hairline edge for separation, no glow.
+            .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).strokeBorder(.primary.opacity(0.1), lineWidth: 1))
             // Splashes sit outside the clip so droplets can fly past the edge.
             .overlay {
                 ForEach(splashes) { splash in
@@ -363,8 +357,8 @@ struct PaintRow: View {
         HStack(spacing: 12) {
             Button(action: onAdd) {
                 PaintBlob(seed: paint.blobSeed)
-                    .fill(paint.color.swiftUIColor.gradient)
-                    .overlay(PaintBlob(seed: paint.blobSeed).stroke(.black.opacity(0.08), lineWidth: 1))
+                    .fill(paint.color.swiftUIColor)
+                    .overlay(PaintBlob(seed: paint.blobSeed).stroke(.primary.opacity(0.18), lineWidth: 1))
                     .frame(width: 40, height: 40)
                     .phaseAnimator([1.0, 1.25, 0.95, 1.0], trigger: parts) { content, scale in
                         content.scaleEffect(scale)

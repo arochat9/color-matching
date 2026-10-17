@@ -74,8 +74,8 @@ private struct PaletteTubeRow: View {
         Button(action: onToggle) {
             HStack(spacing: 12) {
                 PaintBlob(seed: paint.blobSeed)
-                    .fill(paint.color.swiftUIColor.gradient)
-                    .overlay(PaintBlob(seed: paint.blobSeed).stroke(.black.opacity(0.08), lineWidth: 1))
+                    .fill(paint.color.swiftUIColor)
+                    .overlay(PaintBlob(seed: paint.blobSeed).stroke(.primary.opacity(0.18), lineWidth: 1))
                     .frame(width: 34, height: 34)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(paint.name).font(.body.weight(.semibold)).foregroundStyle(.primary)

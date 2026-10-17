@@ -50,7 +50,7 @@ struct SplashView: View {
 
                 // The falling drop.
                 Teardrop()
-                    .fill(splash.color.gradient)
+                    .fill(splash.color)
                     .overlay(Teardrop().stroke(.white, lineWidth: 2))
                     .overlay(alignment: .bottomLeading) {
                         Circle().fill(.white.opacity(0.7)).frame(width: 6, height: 6).offset(x: 5, y: -7)
@@ -238,9 +238,8 @@ private struct BouncyButtonBody: View {
             .frame(minHeight: 44)
             .foregroundStyle(prominent ? (customTint == nil ? theme.onAccent : Color.white) : tint)
             .background(
-                Capsule().fill(prominent ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(tint.opacity(0.14)))
+                Capsule().fill(prominent ? tint : tint.opacity(0.14))
             )
-            .shadow(color: prominent ? tint.opacity(0.35) : .clear, radius: 8, y: 4)
             .scaleEffect(configuration.isPressed ? 0.92 : 1)
             .saturation(isEnabled ? 1 : 0)
             .opacity(isEnabled ? 1 : 0.5)
