@@ -137,6 +137,32 @@ final class ColorNameTests: XCTestCase {
     }
 }
 
+final class GoalPoolTests: XCTestCase {
+    /// The app's real list of painter colors.
+    static let paintColors: ColorNameIndex = {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("App/Resources/paintcolors.csv")
+        return ColorNameIndex(csv: (try? String(contentsOf: url, encoding: .utf8)) ?? "")
+    }()
+
+    func testDefaultPaletteDealsOnlyReachableColors() {
+        let names = GoalPoolTests.paintColors
+        let gamuts = DynamicPalette.extras.map { PaletteGamut(palette: DynamicPalette.palette(with: $0).paints) }
+        let pool = names.reachable(by: gamuts)
+        print("Goal pool: \(pool.count) of \(names.colors.count) colors")
+        XCTAssertGreaterThan(pool.count, names.colors.count / 2)
+        XCTAssertLessThan(pool.count, names.colors.count)
+    }
+
+    func testSmallerPaletteHasASmallerPool() {
+        let names = GoalPoolTests.paintColors
+        let full = names.reachable(by: [PaletteGamut(palette: DynamicPalette.core)])
+        let twoTubes = names.reachable(by: [PaletteGamut(palette: [.titaniumWhite, .ultramarineBlue])])
+        XCTAssertLessThan(twoTubes.count, full.count)
+    }
+}
+
 final class QualifierTests: XCTestCase {
     func testLighterAndDuller() {
         let named = Lab(l: 50, a: 40, b: 0)
@@ -152,8 +178,22 @@ final class RecoveryTests: XCTestCase {
         XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 1)
     }
 
-    func testTooMuchWhiteCannotBeUndone() {
-        // Deep ultramarine can't be reached once the pile is mostly white (the no-return demo's mix).
+    func testOnePartOfTheExtraTubeIsNotPastNoReturn() {
+        // The original report: one part of rose toward a brick red was flagged though it's easy to fix.
+        let palette = DynamicPalette.palette(with: .permanentRose).paints
+        let current = Recipe([Ingredient(paint: .permanentRose, parts: 1)])
+        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: SRGB(hex: "#B0513A")!, palette: palette), 3)
+    }
+
+    func testBlackInYellowCannotBeUndone() {
+        // Black dulls yellow for good.
+        let target = Paint.cadmiumYellow.color
+        let current = Recipe([Ingredient(paint: .ivoryBlack, parts: 1), Ingredient(paint: .cadmiumYellow, parts: 2)])
+        XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
+    }
+
+    func testTooMuchWhiteIsPastNoReturnWhenItTakesMoreThanDoubling() {
+        // Getting back to deep ultramarine would take far more than doubling this pile.
         let target = Paint.ultramarineBlue.color
         let current = Recipe([Ingredient(paint: .ultramarineBlue, parts: 1), Ingredient(paint: .titaniumWhite, parts: 12)])
         XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)

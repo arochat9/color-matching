@@ -12,30 +12,20 @@ struct ResultView: View {
 
     var body: some View {
         ZStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    header
-                    splitSwatch.reveal(revealed, order: 1)
-                    feedback.reveal(revealed, order: 2)
-                    RecipeCard(
-                        title: "Simplest recipe",
-                        subtitle: "Fewest paints that reach the goal",
-                        solution: result.simplest
-                    )
-                    .reveal(revealed, order: 3)
-                    if result.closest.recipe != result.simplest.recipe,
-                       result.closest.deltaE < result.simplest.deltaE - 0.3 {
-                        RecipeCard(
-                            title: "Closest recipe",
-                            subtitle: "\(result.closest.recipe.paintCount) paints, a touch more accurate",
-                            solution: result.closest
-                        )
-                        .reveal(revealed, order: 4)
-                    }
-                    yourRecipe.reveal(revealed, order: 5)
-                    buttons.reveal(revealed, order: 6)
+            VStack(spacing: 0) {
+                // The biggest swatch that lets everything fit; scroll only if even the smallest doesn't.
+                ViewThatFits(in: .vertical) {
+                    content(swatchHeight: 240)
+                    content(swatchHeight: 170)
+                    ScrollView { content(swatchHeight: 120) }
                 }
-                .padding()
+                .frame(maxHeight: .infinity, alignment: .top)
+                // Like Submit on the main screen, the next step is always in the same spot.
+                buttons
+                    .reveal(revealed, order: 4)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
             }
             if result.match.counts {
                 ConfettiView(colors: confettiColors)
@@ -49,20 +39,57 @@ struct ResultView: View {
         }
     }
 
+    private func content(swatchHeight: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            gap
+            splitSwatch.frame(height: swatchHeight).reveal(revealed, order: 1)
+            gap
+            feedback.reveal(revealed, order: 2)
+            gap
+            RecipeTable(columns: recipeColumns).reveal(revealed, order: 3)
+        }
+        .padding()
+    }
+
+    /// Room between sections that grows a little when there is space to spare.
+    private var gap: some View {
+        Spacer(minLength: 16).frame(maxHeight: 32)
+    }
+
+    /// The simplest recipe, the closest one when it's meaningfully better, then yours.
+    private var recipeColumns: [RecipeTable.Column] {
+        var columns = [RecipeTable.Column(title: "Simplest", recipe: result.simplest.recipe, color: result.simplest.color, percent: Scoring.matchPercent(deltaE: result.simplest.deltaE))]
+        if result.closest.recipe != result.simplest.recipe,
+           result.closest.deltaE < result.simplest.deltaE - 0.3 {
+            columns.append(.init(title: "Closest", recipe: result.closest.recipe, color: result.closest.color, percent: Scoring.matchPercent(deltaE: result.closest.deltaE)))
+        }
+        columns.append(.init(title: "Yours", recipe: result.guessRecipe, color: result.guess, percent: result.match.matchPercent))
+        return columns
+    }
+
     private var confettiColors: [Color] {
         [result.target.swiftUIColor, theme.star, theme.accent, theme.success, .white]
             + result.simplest.recipe.ingredients.map { $0.paint.color.swiftUIColor }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 14) {
                 Text("\(Int(shownPercent.rounded()))%")
-                    .font(.system(size: 64, weight: .heavy, design: .rounded))
+                    .font(.system(size: 60, weight: .heavy, design: .rounded))
                     .foregroundStyle(result.match.counts ? AnyShapeStyle(theme.success.gradient) : AnyShapeStyle(theme.ink))
                     .contentTransition(.numericText(value: shownPercent))
-                Text("match").font(.title3).foregroundStyle(.secondary)
-                Spacer()
+                    .lineLimit(1)
+                    .fixedSize()
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(result.match.verdict).font(.title3.weight(.bold)).lineLimit(1).minimumScaleFactor(0.8)
+                    if let name = result.targetName {
+                        Text(name).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 0)
                 if result.scoredPoint {
                     Label("+1", systemImage: "star.fill")
                         .font(.title2.weight(.heavy))
@@ -73,25 +100,20 @@ struct ResultView: View {
                         .animation(.spring(duration: 0.6, bounce: 0.6).delay(0.9), value: revealed)
                 }
             }
-            if let name = result.targetName {
-                Text(name).font(.title3.weight(.semibold))
-            }
-            Text(result.match.verdict).font(.headline)
-            Text(String(format: "ΔE2000 %.1f · 90%% or better earns a point", result.match.deltaE))
-                .font(.caption)
-                .foregroundStyle(.secondary)
             if result.isPractice {
-                Label("Practice round, so no star", systemImage: "graduationcap.fill")
+                Label("Practice round, no star", systemImage: "graduationcap.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(theme.info)
             }
-            if result.closest.deltaE > 2 {
-                Label(
-                    "Best possible with this palette: \(Int(result.bestPossiblePercent.rounded()))%. This color is outside what these paints can mix.",
-                    systemImage: "exclamationmark.triangle.fill"
-                )
-                .font(.caption)
-                .foregroundStyle(theme.warning)
+            if result.match.deltaE <= result.closest.deltaE + 0.5 {
+                // Nobody can do better with these paints, even when the percentage isn't 100.
+                Label("As close as these paints can get", systemImage: "checkmark.seal.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.success)
+            } else if result.closest.deltaE > 2 {
+                Label("These paints can reach \(Int(result.bestPossiblePercent.rounded()))% at best", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(theme.warning)
             }
         }
     }
@@ -107,27 +129,16 @@ struct ResultView: View {
                 SwatchLabel(text: "Yours \(result.guess.hex)")
             }
         }
-        .frame(height: 120)
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     private var feedback: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             ForEach(result.match.feedback, id: \.self) { note in
-                Label(note, systemImage: "lightbulb")
+                Label(note, systemImage: "lightbulb.fill")
                     .font(.subheadline)
             }
         }
-    }
-
-    private var yourRecipe: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Your mix").font(.headline)
-            RecipeList(recipe: result.guessRecipe)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(theme.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     private var buttons: some View {
@@ -155,61 +166,71 @@ private struct SwatchLabel: View {
     }
 }
 
-struct RecipeCard: View {
-    let title: String
-    let subtitle: String
-    let solution: Solution
+/// Recipes side by side: one row per paint, one column per recipe, parts with the share underneath.
+struct RecipeTable: View {
+    struct Column {
+        let title: String
+        let recipe: Recipe
+        let color: SRGB
+        /// How well this recipe matches the goal.
+        let percent: Double
+    }
+
+    let columns: [Column]
     @Environment(\.theme) private var theme
 
+    /// Every paint used by any column, in the order they first show up.
+    private var paints: [Paint] {
+        var seen = Set<String>()
+        return columns.flatMap { $0.recipe.ingredients.map(\.paint) }.filter { seen.insert($0.id).inserted }
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.headline)
-                    Text(subtitle).font(.caption).foregroundStyle(.secondary)
+        Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 10) {
+            GridRow {
+                Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+                ForEach(columns, id: \.title) { column in
+                    VStack(spacing: 4) {
+                        PaintBlob(seed: 7)
+                            .fill(column.color.swiftUIColor.gradient)
+                            .frame(width: 30, height: 30)
+                        Text(column.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        Text("\(Int(column.percent.rounded()))% match").font(.caption2.monospacedDigit()).foregroundStyle(.tertiary)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                Spacer()
-                PaintBlob(seed: 7)
-                    .fill(solution.color.swiftUIColor.gradient)
-                    .frame(width: 48, height: 48)
             }
-            RecipeList(recipe: solution.recipe)
-            Text(String(format: "Ratio %@ · ΔE %.1f from the goal", ratio, solution.deltaE))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            ForEach(paints) { paint in
+                GridRow {
+                    HStack(spacing: 8) {
+                        PaintBlob(seed: paint.blobSeed)
+                            .fill(paint.color.swiftUIColor.gradient)
+                            .overlay(PaintBlob(seed: paint.blobSeed).stroke(.black.opacity(0.08), lineWidth: 1))
+                            .frame(width: 24, height: 24)
+                        Text(paint.name).font(.subheadline).lineLimit(1).minimumScaleFactor(0.8)
+                    }
+                    ForEach(columns, id: \.title) { column in
+                        cell(paint, in: column.recipe).frame(maxWidth: .infinity)
+                    }
+                }
+            }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(theme.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
-    private var ratio: String {
-        solution.recipe.ingredients.map { "\($0.parts)" }.joined(separator: ":")
-    }
-}
-
-struct RecipeList: View {
-    let recipe: Recipe
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(recipe.ingredients, id: \.paint.id) { ingredient in
-                HStack(spacing: 10) {
-                    PaintBlob(seed: ingredient.paint.blobSeed)
-                        .fill(ingredient.paint.color.swiftUIColor.gradient)
-                        .overlay(PaintBlob(seed: ingredient.paint.blobSeed).stroke(.black.opacity(0.08), lineWidth: 1))
-                        .frame(width: 26, height: 26)
-                    Text(ingredient.paint.name)
-                    Spacer()
-                    Text("\(ingredient.parts) \(ingredient.parts == 1 ? "part" : "parts")")
-                        .monospacedDigit()
-                    Text("\(Int((recipe.fraction(of: ingredient) * 100).rounded()))%")
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                        .frame(width: 44, alignment: .trailing)
-                }
-                .font(.subheadline)
+    @ViewBuilder
+    private func cell(_ paint: Paint, in recipe: Recipe) -> some View {
+        if let ingredient = recipe.ingredients.first(where: { $0.paint.id == paint.id }) {
+            VStack(spacing: 0) {
+                Text("\(ingredient.parts)").font(.headline.monospacedDigit())
+                Text("\(Int((recipe.fraction(of: ingredient) * 100).rounded()))%")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
             }
+        } else {
+            Text("–").foregroundStyle(.tertiary)
         }
     }
 }

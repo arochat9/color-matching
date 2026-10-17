@@ -146,6 +146,11 @@ public extension ChallengeGenerator {
 }
 
 public extension ColorNameIndex {
+    /// The named colors that at least one of `gamuts` can mix to within `reach` ΔE (3 is a 90% match).
+    func reachable(by gamuts: [PaletteGamut], within reach: Double = 3) -> [NamedColor] {
+        colors.filter { color in gamuts.contains { $0.distance(to: color.color) <= reach } }
+    }
+
     /// How `color` differs from the named color it is closest to, e.g. "lighter, duller".
     /// Returns nil when the difference is too small to mention.
     static func qualifier(of color: Lab, relativeTo named: Lab) -> String? {
