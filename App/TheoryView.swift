@@ -42,6 +42,7 @@ struct TheoryView: View {
                 }
             }
             .background(theme.canvas.ignoresSafeArea())
+            .navigationTitle("Color Theory")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
