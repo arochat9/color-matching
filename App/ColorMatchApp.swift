@@ -49,8 +49,10 @@ struct ColorMatchApp: App {
             let target = model.huePuzzle.target
             model.pick = WheelColor(hue: target.hue + 14, saturation: target.saturation - 0.15, brightness: target.brightness + 0.05)
             if demo == "theory-hue-answered" { model.submitHue() }
-        } else if demo == "theory-fit-answered", let wrong = model.fitPuzzle.options.first(where: { $0.kind == .offTone }) {
-            model.choose(wrong)
+        } else if let wrong = model.fitPuzzle.options.first(where: { $0.kind == .offTone }) {
+            // A wrong pick being tried, so the screenshot shows the preview; "answered" confirms it.
+            model.select(wrong)
+            if demo == "theory-fit-answered" { model.confirmFit() }
         }
         return model
     }

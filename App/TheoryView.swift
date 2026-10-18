@@ -26,17 +26,11 @@ struct TheoryView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 if isAnswered {
-                    Button {
-                        withAnimation(.spring(duration: 0.5, bounce: 0.3)) {
-                            model.mode == .fit ? model.nextFit() : model.nextHue()
-                        }
-                    } label: {
-                        Label("Next set", systemImage: "arrow.right").frame(maxWidth: .infinity)
+                    bottomButton("Next set", icon: "arrow.right") {
+                        model.mode == .fit ? model.nextFit() : model.nextHue()
                     }
-                    .buttonStyle(BouncyButtonStyle(prominent: true))
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(theme.canvas)
+                } else if model.mode == .fit, model.fitSelection != nil {
+                    bottomButton("Confirm", icon: "checkmark") { model.confirmFit() }
                 }
             }
             .background(theme.canvas.ignoresSafeArea())
@@ -61,7 +55,7 @@ struct TheoryView: View {
                     .foregroundStyle(theme.star)
                     .animation(.spring, value: model.streak)
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Best-fit streak: \(model.streak)")
+                    .accessibilityLabel("Streak: \(model.streak)")
                 }
             }
             .sheet(isPresented: $showHowTo) {
@@ -70,6 +64,19 @@ struct TheoryView: View {
                     .presentationBackground(theme.canvas)
             }
         }
+    }
+
+    private func bottomButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button {
+            withAnimation(.spring(duration: 0.5, bounce: 0.3)) { action() }
+        } label: {
+            Label(title, systemImage: icon).frame(maxWidth: .infinity)
+        }
+        .buttonStyle(BouncyButtonStyle(prominent: true))
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(theme.canvas)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     /// The next-set button stays pinned to the bottom once a set is answered.
@@ -102,12 +109,12 @@ struct FitQuizView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Which color fits the set?").font(.title3.weight(.bold))
                 if model.fitPick == nil {
-                    Text("Look at where the hues sit on the color wheel, and at how bright or soft they are.")
+                    Text("Tap a color to try it in the set, then confirm. Look at where the hues sit on the wheel, and at how bright or soft they are.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             }
-            ColorSet(colors: puzzle.shown, slotTitle: model.fitPick == nil ? "?" : "Fits", slot: model.fitPick.map { _ in puzzle.answer.color })
+            ColorSet(colors: puzzle.shown, slotTitle: slotTitle, slot: slotColor)
                 .frame(height: model.fitPick == nil ? 110 : 80)
             options
             if let pick = model.fitPick {
@@ -121,13 +128,23 @@ struct FitQuizView: View {
         }
     }
 
+    /// Before you confirm, the empty slot previews your selection; after, it shows the color that fits.
+    private var slotTitle: String {
+        if model.fitPick != nil { return "Fits" }
+        return model.fitSelection == nil ? "?" : "Trying"
+    }
+
+    private var slotColor: WheelColor? {
+        model.fitPick != nil ? puzzle.answer.color : model.fitSelection?.color
+    }
+
     private var options: some View {
         HStack(spacing: 10) {
             ForEach(puzzle.options) { option in
                 Button {
-                    withAnimation(.spring(duration: 0.45, bounce: 0.3)) { model.choose(option) }
+                    withAnimation(.spring(duration: 0.35, bounce: 0.3)) { model.select(option) }
                 } label: {
-                    OptionChip(option: option, pick: model.fitPick)
+                    OptionChip(option: option, pick: model.fitPick, isSelected: model.fitSelection?.id == option.id)
                 }
                 .buttonStyle(.plain)
                 .disabled(model.fitPick != nil)
@@ -169,6 +186,8 @@ struct FitQuizView: View {
 private struct OptionChip: View {
     let option: FitPuzzle.Option
     let pick: FitPuzzle.Option?
+    /// Being tried in the set, not yet confirmed.
+    let isSelected: Bool
     @Environment(\.theme) private var theme
 
     private var answered: Bool { pick != nil }
@@ -190,13 +209,13 @@ private struct OptionChip: View {
             }
             .padding(4)
             .overlay {
-                if answered && isAnswer {
+                if answered ? isAnswer : isSelected {
                     Circle().strokeBorder(theme.ink, lineWidth: 2.5)
                 }
             }
             .aspectRatio(1, contentMode: .fit)
             .frame(maxWidth: .infinity)
-            .scaleEffect(answered && isAnswer ? 1.08 : 1)
+            .scaleEffect((answered ? isAnswer : isSelected) ? 1.08 : 1)
             .opacity(answered && !isAnswer && !isPick ? 0.4 : 1)
     }
 }
@@ -227,7 +246,7 @@ struct HueQuizView: View {
                 picker
             }
         }
-        .sensoryFeedback(.success, trigger: model.hueGrade?.percent) { _, new in (new ?? 0) >= 85 }
+        .sensoryFeedback(.success, trigger: model.hueGrade?.percent) { _, new in (new ?? 0) >= HueGrade.passing }
     }
 
     private var picker: some View {
@@ -250,7 +269,7 @@ struct HueQuizView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("\(Int(grade.percent.rounded()))%")
                         .font(.system(size: 44, weight: .heavy, design: .rounded))
-                        .foregroundStyle(grade.percent >= 85 ? AnyShapeStyle(theme.success) : AnyShapeStyle(theme.ink))
+                        .foregroundStyle(grade.passes ? AnyShapeStyle(theme.success) : AnyShapeStyle(theme.ink))
                         .lineLimit(1)
                         .fixedSize()
                     Text("fit").font(.subheadline).foregroundStyle(.secondary)

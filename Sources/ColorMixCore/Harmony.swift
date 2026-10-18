@@ -385,6 +385,10 @@ public struct HueGrade: Sendable {
     public let tips: [String]
     /// Another harmony your pick happens to make with the set.
     public let alsoFits: HarmonyRule?
+
+    /// The score that counts toward your streak.
+    public static let passing: Double = 90
+    public var passes: Bool { percent >= HueGrade.passing }
 }
 
 private extension String {
