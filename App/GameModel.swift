@@ -330,10 +330,14 @@ final class GameModel: ObservableObject {
     /// Whether this palette could reach the goal at all, ignoring the current mix.
     var paletteCanReachGoal: Bool { !goalIsOutOfReach }
 
-    /// The current mix can no longer get to 90% by adding paint, though a fresh pile could.
+    /// Piles smaller than this are cheap to start over, so they never get the warning.
+    static let noReturnMinParts = 10
+
+    /// The current mix can no longer get to 90% without more than tripling it, though a fresh pile could.
     var isPastPointOfNoReturn: Bool {
         // 90% is ΔE 3. Only when a fresh pile could get there, but adding to this one can't.
-        guard let recovery = recoveryDeltaE, goalReach <= 3 else { return false }
+        guard currentRecipe.totalParts >= GameModel.noReturnMinParts,
+              let recovery = recoveryDeltaE, goalReach <= 3 else { return false }
         return recovery > 3
     }
 

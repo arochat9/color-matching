@@ -192,16 +192,17 @@ final class RecoveryTests: XCTestCase {
         XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
     }
 
-    func testBigAdditionsStillCountAsARecovery() {
-        // A screenshot from play: white and black in a cobalt blue looked like no return,
-        // but about 20 more white and 30 more ultramarine get it back above 90%.
+    func testTriplingThePileIsTheLimit() {
+        // A screenshot from play: white and black in a cobalt blue. Tripling the pile can't save it,
+        // but about 20 more white and 30 more ultramarine (11 times the pile) would.
         let target = SRGB(hex: "#1F4FA8")!
         let current = Recipe([
             Ingredient(paint: .titaniumWhite, parts: 1), Ingredient(paint: .ivoryBlack, parts: 1),
             Ingredient(paint: .phthaloBlue, parts: 2), Ingredient(paint: .ultramarineBlue, parts: 1),
         ])
         let palette = DynamicPalette.core + [Paint.ultramarineBlue]
-        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: palette), 3)
+        XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: palette), 3)
+        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: palette, maxGrowth: 12), 3)
     }
 
     func testLightGraysAndPastelsAreInReach() {

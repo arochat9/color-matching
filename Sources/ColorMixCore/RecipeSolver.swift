@@ -89,9 +89,8 @@ public struct RecipeSolver: Sendable {
 public extension RecipeSolver {
     /// The closest you can get to `target` by only *adding* paint to `current`, the way real paint works:
     /// once it's on the palette you can't take it back out. Tries adding up to three paints, from a dab up to
-    /// six times the pile (the pile counts as at least 10 parts), so drowning a mistake in paint still counts.
-    /// Returns the best ΔE2000.
-    static func bestDeltaEByAdding(to current: Recipe, target: SRGB, palette: [Paint]) -> Double {
+    /// whatever keeps the pile within `maxGrowth` times its size. Returns the best ΔE2000.
+    static func bestDeltaEByAdding(to current: Recipe, target: SRGB, palette: [Paint], maxGrowth: Double = 3) -> Double {
         let targetLab = target.lab
         let bands = Spectral.bandCount
         let ks = palette.map { $0.reflectance.map(Mixer.kOverS) }
@@ -104,8 +103,9 @@ public extension RecipeSolver {
             baseWeight += w
         }
         guard baseWeight > 0 else { return .infinity }
-        let cap = max(Double(current.totalParts), 10)
-        let amounts = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6].map { $0 * cap }
+        let pile = Double(current.totalParts)
+        let budget = pile * (maxGrowth - 1)
+        let amounts = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5, 0.75, 1].map { $0 * budget }
 
         var best = Double.infinity
         var sum = baseSum
@@ -121,19 +121,19 @@ public extension RecipeSolver {
             best = min(best, ColorDifference.deltaE2000(targetLab, SRGB(xyz: XYZ(x: x, y: y, z: z)).lab))
         }
         // Depth-first over sets of up to three added paints, each in one of the amounts.
-        func addPaints(from start: Int, depth: Int, weight: Double) {
+        func addPaints(from start: Int, depth: Int, weight: Double, added: Double) {
             evaluate(weight: weight)
             guard depth < 3 else { return }
             for p in start..<palette.count {
-                for amount in amounts {
+                for amount in amounts where added + amount <= budget + 1e-9 {
                     let w = amount * palette[p].strength
                     for i in 0..<bands { sum[i] += w * ks[p][i] }
-                    addPaints(from: p + 1, depth: depth + 1, weight: weight + w)
+                    addPaints(from: p + 1, depth: depth + 1, weight: weight + w, added: added + amount)
                     for i in 0..<bands { sum[i] -= w * ks[p][i] }
                 }
             }
         }
-        addPaints(from: 0, depth: 0, weight: baseWeight)
+        addPaints(from: 0, depth: 0, weight: baseWeight, added: 0)
         return best
     }
 }
