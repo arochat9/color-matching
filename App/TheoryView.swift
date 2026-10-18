@@ -59,8 +59,10 @@ struct TheoryView: View {
                         Image(systemName: "flame.fill").symbolEffect(.bounce, value: model.streak)
                         Text("\(model.streak)").contentTransition(.numericText(value: Double(model.streak)))
                     }
-                    .font(.headline)
+                    .font(.headline.monospacedDigit())
                     .foregroundStyle(theme.star)
+                    // Keeps its full width; the title gives way instead of a long streak getting cut off.
+                    .fixedSize()
                     .animation(.spring, value: model.streak)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Streak: \(model.streak)")
