@@ -42,30 +42,29 @@ struct TheoryView: View {
                 }
             }
             .background(theme.canvas.ignoresSafeArea())
-            .navigationTitle("Color Theory")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if let onHome { HomeButton(action: onHome) }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showHowTo = true } label: {
-                        Image(systemName: "questionmark.circle").font(.title3)
-                    }
-                    .accessibilityLabel("How to play")
-                }
-                ToolbarItem(placement: .topBarLeading) {
                     HStack(spacing: 4) {
                         Image(systemName: "flame.fill").symbolEffect(.bounce, value: model.streak)
                         Text("\(model.streak)").contentTransition(.numericText(value: Double(model.streak)))
                     }
                     .font(.headline.monospacedDigit())
                     .foregroundStyle(theme.star)
-                    // Keeps its full width; the title gives way instead of a long streak getting cut off.
+                    // Keeps its full width so a long streak never gets cut off.
                     .fixedSize()
                     .animation(.spring, value: model.streak)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Streak: \(model.streak)")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showHowTo = true } label: {
+                        Image(systemName: "questionmark.circle").font(.title3)
+                    }
+                    .accessibilityLabel("How to play")
                 }
             }
             .sheet(isPresented: $showHowTo) {
