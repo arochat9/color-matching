@@ -88,19 +88,22 @@ struct ToneSquare: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                LinearGradient(
-                    colors: [.white, WheelColor(hue: hue, saturation: 1, brightness: 1).swiftUIColor],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-                LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                // Only the colors are clipped, so the handle stays whole at the edges.
+                ZStack {
+                    LinearGradient(
+                        colors: [.white, WheelColor(hue: hue, saturation: 1, brightness: 1).swiftUIColor],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 Circle()
                     .fill(WheelColor(hue: hue, saturation: saturation, brightness: brightness).swiftUIColor)
                     .overlay(Circle().strokeBorder(.white, lineWidth: 3))
                     .frame(width: 36, height: 36)
                     .position(x: CGFloat(saturation) * geo.size.width, y: CGFloat(1 - brightness) * geo.size.height)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0).onChanged { value in
