@@ -246,3 +246,15 @@ private struct BouncyButtonBody: View {
             .animation(.spring(response: 0.25, dampingFraction: 0.55), value: configuration.isPressed)
     }
 }
+
+extension ToolbarContent {
+    /// Drops the iOS 26 glass bubble behind a toolbar item, to keep the app matte.
+    @ToolbarContentBuilder
+    func matte() -> some ToolbarContent {
+        if #available(iOS 26, *) {
+            sharedBackgroundVisibility(.hidden)
+        } else {
+            self
+        }
+    }
+}

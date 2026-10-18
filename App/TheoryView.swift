@@ -46,12 +46,14 @@ struct TheoryView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     if let onHome { HomeButton(action: onHome) }
                 }
+                .matte()
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showHowTo = true } label: {
                         Image(systemName: "questionmark.circle").font(.title3)
                     }
                     .accessibilityLabel("How to play")
                 }
+                .matte()
                 ToolbarItem(placement: .topBarLeading) {
                     HStack(spacing: 4) {
                         Image(systemName: "flame.fill").symbolEffect(.bounce, value: model.streak)
@@ -63,6 +65,7 @@ struct TheoryView: View {
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Best-fit streak: \(model.streak)")
                 }
+                .matte()
             }
             .sheet(isPresented: $showHowTo) {
                 HowToPlayView(game: .theory) { showHowTo = false }
