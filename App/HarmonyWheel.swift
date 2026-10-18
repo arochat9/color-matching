@@ -97,7 +97,7 @@ struct ToneSquare: View {
                 Circle()
                     .fill(WheelColor(hue: hue, saturation: saturation, brightness: brightness).swiftUIColor)
                     .overlay(Circle().strokeBorder(.white, lineWidth: 3))
-                    .frame(width: 30, height: 30)
+                    .frame(width: 36, height: 36)
                     .position(x: CGFloat(saturation) * geo.size.width, y: CGFloat(1 - brightness) * geo.size.height)
             }
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -138,7 +138,7 @@ struct HueStrip: View {
                 Circle()
                     .fill(WheelColor(hue: hue, saturation: 1, brightness: 1).swiftUIColor)
                     .overlay(Circle().strokeBorder(.white, lineWidth: 3))
-                    .frame(width: 34, height: 34)
+                    .frame(width: 44, height: 44)
                     .position(x: CGFloat((position - range.lowerBound) / span) * geo.size.width, y: geo.size.height / 2)
             }
             .contentShape(Rectangle())
@@ -149,7 +149,7 @@ struct HueStrip: View {
                 }
             )
         }
-        .frame(height: 34)
+        .frame(height: 44)
         .accessibilityElement()
         .accessibilityLabel("Hue")
         .accessibilityValue(ColorWheel.name(forHue: hue))

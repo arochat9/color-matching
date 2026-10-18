@@ -31,6 +31,8 @@ struct TheoryView: View {
                     }
                 } else if model.mode == .fit, model.fitSelection != nil {
                     bottomButton("Confirm", icon: "checkmark") { model.confirmFit() }
+                } else if model.mode == .hue {
+                    bottomButton("Check", icon: "checkmark") { model.submitHue() }
                 }
             }
             .background(theme.canvas.ignoresSafeArea())
@@ -252,14 +254,8 @@ struct HueQuizView: View {
     private var picker: some View {
         VStack(spacing: 18) {
             ToneSquare(hue: model.pick.hue, saturation: $model.pick.saturation, brightness: $model.pick.brightness)
-                .frame(height: 210)
+                .frame(height: 330)
             HueStrip(range: puzzle.family.range, hue: $model.pick.hue)
-            Button {
-                withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.submitHue() }
-            } label: {
-                Label("Check", systemImage: "checkmark").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(BouncyButtonStyle(prominent: true))
         }
     }
 
