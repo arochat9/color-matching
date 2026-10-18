@@ -236,9 +236,10 @@ final class GameModel: ObservableObject {
 
     /// The extra tube (if turned on) that gets closest to the goal, and how close (ΔE) the palette can then get.
     static func bestExtra(for target: SRGB, base: [Paint], autoExtra: Bool) -> (Paint?, Double) {
-        guard autoExtra else { return (nil, gamut(for: makePalette(base: base, extra: nil)).distance(to: target)) }
-        // Always one extra tube, so the default palette is the six basics plus one.
-        var best: (Paint?, Double) = (nil, .infinity)
+        let baseReach = gamut(for: makePalette(base: base, extra: nil)).distance(to: target)
+        // Your own paints first: only bring out an extra tube when they can't comfortably get there.
+        guard autoExtra, baseReach > comfortableReach else { return (nil, baseReach) }
+        var best: (Paint?, Double) = (nil, baseReach)
         let baseIDs = Set(base.map(\.id))
         for extra in DynamicPalette.allPaints where !baseIDs.contains(extra.id) {
             let d = gamut(for: makePalette(base: base, extra: extra)).distance(to: target)
@@ -246,6 +247,10 @@ final class GameModel: ObservableObject {
         }
         return best
     }
+
+    /// ΔE your own paints need to get within before no extra tube is added. Under the 90% bar (ΔE 3),
+    /// so a goal they can only just reach still gets a helper tube.
+    static let comfortableReach = 2.5
 
     /// True when no mix of this palette gets within "close" range of the goal.
     var goalIsOutOfReach: Bool { goalReach > 3 }

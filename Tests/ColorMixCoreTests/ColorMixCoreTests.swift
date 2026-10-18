@@ -192,11 +192,16 @@ final class RecoveryTests: XCTestCase {
         XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
     }
 
-    func testTooMuchWhiteIsPastNoReturnWhenItTakesMoreThanDoubling() {
-        // Getting back to deep ultramarine would take far more than doubling this pile.
-        let target = Paint.ultramarineBlue.color
-        let current = Recipe([Ingredient(paint: .ultramarineBlue, parts: 1), Ingredient(paint: .titaniumWhite, parts: 12)])
-        XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
+    func testBigAdditionsStillCountAsARecovery() {
+        // A screenshot from play: white and black in a cobalt blue looked like no return,
+        // but about 20 more white and 30 more ultramarine get it back above 90%.
+        let target = SRGB(hex: "#1F4FA8")!
+        let current = Recipe([
+            Ingredient(paint: .titaniumWhite, parts: 1), Ingredient(paint: .ivoryBlack, parts: 1),
+            Ingredient(paint: .phthaloBlue, parts: 2), Ingredient(paint: .ultramarineBlue, parts: 1),
+        ])
+        let palette = DynamicPalette.core + [Paint.ultramarineBlue]
+        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: palette), 3)
     }
 
     func testLightGraysAndPastelsAreInReach() {
