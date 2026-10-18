@@ -251,10 +251,15 @@ extension ToolbarContent {
     /// Drops the iOS 26 glass bubble behind a toolbar item, to keep the app matte.
     @ToolbarContentBuilder
     func matte() -> some ToolbarContent {
+        // The glass and its modifier only exist in the iOS 26 SDK (Swift 6.2); older Xcodes, like CI's, have no glass to drop.
+        #if compiler(>=6.2)
         if #available(iOS 26, *) {
             sharedBackgroundVisibility(.hidden)
         } else {
             self
         }
+        #else
+        self
+        #endif
     }
 }

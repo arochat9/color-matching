@@ -26,6 +26,7 @@ jobs:
 
       - name: Build app for the simulator
         run: |
+          set -o pipefail
           xcodebuild -project ColorMatch.xcodeproj -target ColorMatch \
             -sdk iphonesimulator -configuration Debug \
             CODE_SIGNING_ALLOWED=NO SYMROOT="$PWD/build" build | tail -n 40
