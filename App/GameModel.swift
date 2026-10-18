@@ -213,7 +213,7 @@ final class GameModel: ObservableObject {
         if let source = challenge.sourceRecipe {
             let baseIDs = Set(base.map(\.id))
             let missing = source.ingredients.map(\.paint).filter { !baseIDs.contains($0.id) }
-            if (missing.isEmpty && !autoExtra) || (autoExtra && missing.count == 1 && DynamicPalette.extras.contains(missing[0])) {
+            if missing.isEmpty || (autoExtra && missing.count == 1 && DynamicPalette.extras.contains(missing[0])) {
                 applyReach(extra: missing.first, reach: 0)
                 return
             }
@@ -234,11 +234,12 @@ final class GameModel: ObservableObject {
         goalReach = reach
     }
 
-    /// The extra tube (if turned on) that gets closest to the goal, and how close (ΔE) the palette can then get.
+    /// The extra tube (if turned on and needed) that gets closest to the goal, and how close (ΔE) the palette can then get.
     static func bestExtra(for target: SRGB, base: [Paint], autoExtra: Bool) -> (Paint?, Double) {
-        guard autoExtra else { return (nil, gamut(for: makePalette(base: base, extra: nil)).distance(to: target)) }
-        // Always one extra tube, so the default palette is the six basics plus one.
-        var best: (Paint?, Double) = (nil, .infinity)
+        let baseReach = gamut(for: makePalette(base: base, extra: nil)).distance(to: target)
+        // Only add a tube when your own paints can't get to a match on their own.
+        guard autoExtra, baseReach > 3 else { return (nil, baseReach) }
+        var best: (Paint?, Double) = (nil, baseReach)
         let baseIDs = Set(base.map(\.id))
         for extra in DynamicPalette.allPaints where !baseIDs.contains(extra.id) {
             let d = gamut(for: makePalette(base: base, extra: extra)).distance(to: target)
