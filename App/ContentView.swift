@@ -47,11 +47,13 @@ struct ContentView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     if let onHome { HomeButton(action: onHome) }
                 }
+                .matte()
                 ToolbarItem(placement: .topBarLeading) {
                     ScoreBadge(score: model.lifetimeScore)
                         .fixedSize()
                         .padding(.horizontal, 6)
                 }
+                .matte()
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
                         showLibrary = true
@@ -63,6 +65,7 @@ struct ContentView: View {
                     .accessibilityLabel("Color library")
                     settingsMenu
                 }
+                .matte()
             }
             .navigationDestination(isPresented: $showLibrary) {
                 ColorLibraryView { color in
