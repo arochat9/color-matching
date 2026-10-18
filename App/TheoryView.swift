@@ -9,20 +9,26 @@ struct TheoryView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    Picker("Quiz", selection: $model.mode) {
-                        ForEach(TheoryModel.Mode.allCases) { mode in
-                            Text(mode.title).tag(mode)
+            GeometryReader { geo in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        Picker("Quiz", selection: $model.mode) {
+                            ForEach(TheoryModel.Mode.allCases) { mode in
+                                Text(mode.title).tag(mode)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        switch model.mode {
+                        case .fit: FitQuizView(model: model)
+                        case .hue: HueQuizView(model: model)
                         }
                     }
-                    .pickerStyle(.segmented)
-                    switch model.mode {
-                    case .fit: FitQuizView(model: model)
-                    case .hue: HueQuizView(model: model)
-                    }
+                    .padding()
+                    // While you're picking a hue, the page is exactly one screen tall so the picker
+                    // can grow into whatever room is left; it only scrolls on very small screens.
+                    .frame(height: fillsScreen ? max(geo.size.height, 560) : nil, alignment: .top)
                 }
-                .padding()
+                .scrollBounceBehavior(.basedOnSize)
             }
             .safeAreaInset(edge: .bottom) {
                 if isAnswered {
@@ -79,6 +85,10 @@ struct TheoryView: View {
         .padding(.vertical, 8)
         .background(theme.canvas)
         .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private var fillsScreen: Bool {
+        model.mode == .hue && model.hueGrade == nil
     }
 
     /// The next-set button stays pinned to the bottom once a set is answered.
@@ -254,7 +264,7 @@ struct HueQuizView: View {
     private var picker: some View {
         VStack(spacing: 18) {
             ToneSquare(hue: model.pick.hue, saturation: $model.pick.saturation, brightness: $model.pick.brightness)
-                .frame(height: 330)
+                .frame(minHeight: 180, maxHeight: .infinity)
             HueStrip(range: puzzle.family.range, hue: $model.pick.hue)
         }
     }

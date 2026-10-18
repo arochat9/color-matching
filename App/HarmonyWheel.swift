@@ -120,6 +120,8 @@ struct HueStrip: View {
     let range: ClosedRange<Double>
     @Binding var hue: Double
 
+    private static let thumb: CGFloat = 44
+
     /// The hue measured from the start of the range, so a red slice can run from -45° to 45°.
     private var position: Double {
         range.lowerBound + ColorWheel.normalized(hue - range.lowerBound)
@@ -128,6 +130,8 @@ struct HueStrip: View {
     var body: some View {
         GeometryReader { geo in
             let span = range.upperBound - range.lowerBound
+            // The thumb's center travels inside the strip, so it never hangs off either end.
+            let travel = max(geo.size.width - HueStrip.thumb, 1)
             ZStack(alignment: .leading) {
                 Capsule().fill(LinearGradient(
                     colors: stride(from: range.lowerBound, through: range.upperBound, by: span / 12)
@@ -138,18 +142,18 @@ struct HueStrip: View {
                 Circle()
                     .fill(WheelColor(hue: hue, saturation: 1, brightness: 1).swiftUIColor)
                     .overlay(Circle().strokeBorder(.white, lineWidth: 3))
-                    .frame(width: 44, height: 44)
-                    .position(x: CGFloat((position - range.lowerBound) / span) * geo.size.width, y: geo.size.height / 2)
+                    .frame(width: HueStrip.thumb, height: HueStrip.thumb)
+                    .position(x: HueStrip.thumb / 2 + CGFloat((position - range.lowerBound) / span) * travel, y: geo.size.height / 2)
             }
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0).onChanged { value in
-                    let t = Double(min(max(value.location.x / geo.size.width, 0), 1))
+                    let t = Double(min(max((value.location.x - HueStrip.thumb / 2) / travel, 0), 1))
                     hue = range.lowerBound + t * span
                 }
             )
         }
-        .frame(height: 44)
+        .frame(height: HueStrip.thumb)
         .accessibilityElement()
         .accessibilityLabel("Hue")
         .accessibilityValue(ColorWheel.name(forHue: hue))
