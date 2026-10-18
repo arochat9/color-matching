@@ -47,12 +47,9 @@ struct ContentView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     if let onHome { HomeButton(action: onHome) }
                 }
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
                     ScoreBadge(score: model.lifetimeScore)
                         .fixedSize()
-                        .padding(.horizontal, 6)
-                }
-                ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
                         showLibrary = true
                     } label: {
@@ -61,7 +58,6 @@ struct ContentView: View {
                             .font(.title3)
                     }
                     .accessibilityLabel("Color library")
-                    settingsMenu
                 }
             }
             .navigationDestination(isPresented: $showLibrary) {
@@ -195,21 +191,6 @@ struct ContentView: View {
             .disabled(model.currentRecipe.isEmpty || model.isSolving)
             Button(model.isPractice ? "Random" : "Skip") { withAnimation(.spring(duration: 0.5, bounce: 0.3)) { model.nextRound() } }
                 .buttonStyle(BouncyButtonStyle())
-        }
-    }
-
-    private var settingsMenu: some View {
-        Menu {
-            Button {
-                showPalette = true
-            } label: {
-                Label("Change paints…", systemImage: "slider.horizontal.3")
-            }
-            Toggle("Mixing warnings", isOn: $showWarnings)
-        } label: {
-            Image(systemName: "paintpalette.fill")
-                .symbolRenderingMode(.multicolor)
-                .font(.title3)
         }
     }
 
