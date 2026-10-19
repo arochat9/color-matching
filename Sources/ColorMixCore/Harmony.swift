@@ -157,6 +157,17 @@ public enum HarmonyRule: String, CaseIterable, Sendable {
         }
     }
 
+    /// A short reminder of the rule, shown with the question so you know what you're looking for.
+    public var hint: String {
+        switch self {
+        case .complementary: "Two colors straight across the wheel from each other."
+        case .analogous: "Neighbors on the wheel, each about 30° from the next."
+        case .splitComplementary: "One color plus the two on either side of its opposite."
+        case .triadic: "Three colors evenly spaced, 120° apart."
+        case .square: "Four colors evenly spaced, 90° apart."
+        }
+    }
+
     /// Where each member sits on the wheel, relative to the first.
     public var offsets: [Double] {
         switch self {

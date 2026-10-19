@@ -121,9 +121,9 @@ struct FitQuizView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Which color fits the set?").font(.title3.weight(.bold))
+                Text("Complete the \(puzzle.rule.title.lowercased()) set").font(.title3.weight(.bold))
                 if model.fitPick == nil {
-                    Text("Tap a color to try it in the set, then confirm. Look at where the hues sit on the wheel, and at how bright or soft they are.")
+                    Text("\(puzzle.rule.hint) Match how bright or soft the set is, too.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -244,9 +244,9 @@ struct HueQuizView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Find the \(puzzle.family.rawValue) that fits").font(.title3.weight(.bold))
+                Text("Find the \(puzzle.family.rawValue) that completes the \(puzzle.rule.title.lowercased()) set").font(.title3.weight(.bold))
                 if model.hueGrade == nil {
-                    Text("Pick a \(puzzle.family.rawValue) that belongs with these colors, in hue and in tone.")
+                    Text("\(puzzle.rule.hint) Match the set's tone, too.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
