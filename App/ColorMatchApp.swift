@@ -4,30 +4,12 @@ import SwiftUI
 struct ColorMatchApp: App {
     @StateObject private var model = ColorMatchApp.makeModel()
     @StateObject private var theory = ColorMatchApp.makeTheoryModel()
-    @State private var game = ColorMatchApp.demoGame
 
     var body: some Scene {
         WindowGroup {
-            // Games slide in from the right over the home page, and back out when you go home.
-            ZStack {
-                HomeView(model: model, theory: theory, onPlay: { open($0) }, howTo: ColorMatchApp.demoHowTo)
-                if let game {
-                    Group {
-                        switch game {
-                        case .mix: ContentView(model: model, onHome: { open(nil) })
-                        case .theory: TheoryView(model: theory, onHome: { open(nil) })
-                        }
-                    }
-                    .transition(.move(edge: .trailing))
-                    .zIndex(1)
-                }
-            }
-            .themed(.sketchbook)
+            RootView(model: model, theory: theory, game: ColorMatchApp.demoGame, howTo: ColorMatchApp.demoHowTo)
+                .themed(.sketchbook)
         }
-    }
-
-    private func open(_ game: Game?) {
-        withAnimation(.smooth(duration: 0.35)) { self.game = game }
     }
 
     /// CI screenshots open straight into a game: theory demos into Color Theory, the rest into mixing.
@@ -104,5 +86,34 @@ struct ColorMatchApp: App {
             model.submit()
         }
         return model
+    }
+}
+
+/// Home, with the open game sliding in from the right over it. Kept in a view (not the App) so the slide animates.
+private struct RootView: View {
+    @ObservedObject var model: GameModel
+    @ObservedObject var theory: TheoryModel
+    @State var game: Game?
+    let howTo: Game?
+
+    var body: some View {
+        ZStack {
+            HomeView(model: model, theory: theory, onPlay: { open($0) }, howTo: howTo)
+            if let game {
+                Group {
+                    switch game {
+                    case .mix: ContentView(model: model, onHome: { open(nil) })
+                    case .theory: TheoryView(model: theory, onHome: { open(nil) })
+                    }
+                }
+                .transition(.move(edge: .trailing))
+                .zIndex(1)
+            }
+        }
+        .animation(.smooth(duration: 0.35), value: game)
+    }
+
+    private func open(_ game: Game?) {
+        withAnimation(.smooth(duration: 0.35)) { self.game = game }
     }
 }
