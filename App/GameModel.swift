@@ -236,9 +236,10 @@ final class GameModel: ObservableObject {
 
     /// The extra tube (if turned on) that gets closest to the goal, and how close (ΔE) the palette can then get.
     static func bestExtra(for target: SRGB, base: [Paint], autoExtra: Bool) -> (Paint?, Double) {
-        guard autoExtra else { return (nil, gamut(for: makePalette(base: base, extra: nil)).distance(to: target)) }
-        // Always one extra tube, so the default palette is the six basics plus one.
-        var best: (Paint?, Double) = (nil, .infinity)
+        let baseReach = gamut(for: makePalette(base: base, extra: nil)).distance(to: target)
+        // Your own paints first: only bring out an extra tube when they can't comfortably get there.
+        guard autoExtra, baseReach > comfortableReach else { return (nil, baseReach) }
+        var best: (Paint?, Double) = (nil, baseReach)
         let baseIDs = Set(base.map(\.id))
         for extra in DynamicPalette.allPaints where !baseIDs.contains(extra.id) {
             let d = gamut(for: makePalette(base: base, extra: extra)).distance(to: target)
@@ -246,6 +247,10 @@ final class GameModel: ObservableObject {
         }
         return best
     }
+
+    /// ΔE your own paints need to get within before no extra tube is added. Under the 90% bar (ΔE 3),
+    /// so a goal they can only just reach still gets a helper tube.
+    static let comfortableReach = 2.5
 
     /// True when no mix of this palette gets within "close" range of the goal.
     var goalIsOutOfReach: Bool { goalReach > 3 }
@@ -325,10 +330,14 @@ final class GameModel: ObservableObject {
     /// Whether this palette could reach the goal at all, ignoring the current mix.
     var paletteCanReachGoal: Bool { !goalIsOutOfReach }
 
-    /// The current mix can no longer get to 90% by adding paint, though a fresh pile could.
+    /// Piles smaller than this are cheap to start over, so they never get the warning.
+    static let noReturnMinParts = 10
+
+    /// The current mix can no longer get to 90% without more than tripling it, though a fresh pile could.
     var isPastPointOfNoReturn: Bool {
         // 90% is ΔE 3. Only when a fresh pile could get there, but adding to this one can't.
-        guard let recovery = recoveryDeltaE, goalReach <= 3 else { return false }
+        guard currentRecipe.totalParts >= GameModel.noReturnMinParts,
+              let recovery = recoveryDeltaE, goalReach <= 3 else { return false }
         return recovery > 3
     }
 

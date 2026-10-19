@@ -107,6 +107,8 @@ private struct GameCard<Art: View>: View {
             HStack(spacing: 10) {
                 Button(action: onHowTo) {
                     Label("How to play", systemImage: "questionmark.circle")
+                        .lineLimit(1)
+                        .fixedSize()
                 }
                 .buttonStyle(BouncyButtonStyle())
                 Button(action: onPlay) {
