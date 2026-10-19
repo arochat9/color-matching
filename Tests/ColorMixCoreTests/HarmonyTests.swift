@@ -53,6 +53,10 @@ final class HarmonyTests: XCTestCase {
             for option in puzzle.options where option.kind == .offTone {
                 XCTAssertNotEqual(Tone.nearest(to: option.color), puzzle.tone)
             }
+            // All five come from one hue family, so you're picking a shade, not a hue.
+            for option in puzzle.options {
+                XCTAssertLessThanOrEqual(ColorWheel.distance(option.color.hue, puzzle.family.center), 45.5)
+            }
         }
     }
 

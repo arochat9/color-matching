@@ -139,7 +139,7 @@ struct HowToPlayView: View {
             ]
         case .theory:
             return [
-                ("square.grid.3x1.below.line.grid.1x2", "Best fit", "A set of colors is missing one. Tap an option to try it in the set, then confirm the one that belongs."),
+                ("square.grid.3x1.below.line.grid.1x2", "Best fit", "A set of colors is missing one. All five options are the same kind of color, like five greens. Tap one to try it in the set, then confirm the one that belongs."),
                 ("eyedropper.halffull", "Find the hue", "Make the missing color yourself. The slider only covers one hue family, and the square sets brightness and saturation. 90% or better keeps your streak going."),
                 ("circle.dashed", "Hue and tone both count", "Colors in a set share a tone: pale, bright, dusty or deep. A right hue in the wrong tone still clashes."),
                 ("graduationcap.fill", "Learn the rule", "Every answer names the harmony (complementary, analogous, split complementary, triadic or square) and shows it on the painter's color wheel."),

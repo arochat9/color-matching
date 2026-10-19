@@ -121,9 +121,9 @@ struct FitQuizView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Which color fits the set?").font(.title3.weight(.bold))
+                Text("Which \(puzzle.family.rawValue) fits the set?").font(.title3.weight(.bold))
                 if model.fitPick == nil {
-                    Text("Tap a color to try it in the set, then confirm. Look at where the hues sit on the wheel, and at how bright or soft they are.")
+                    Text("They're all \(puzzle.family.rawValue)s, but only one belongs. Tap one to try it in the set, then confirm. Watch the exact hue, and how bright or soft it is.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
