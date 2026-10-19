@@ -8,18 +8,26 @@ struct ColorMatchApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HomeView(model: model, theory: theory, onPlay: { game = $0 }, howTo: ColorMatchApp.demoHowTo)
-                .fullScreenCover(item: $game) { game in
+            // Games slide in from the right over the home page, and back out when you go home.
+            ZStack {
+                HomeView(model: model, theory: theory, onPlay: { open($0) }, howTo: ColorMatchApp.demoHowTo)
+                if let game {
                     Group {
                         switch game {
-                        case .mix: ContentView(model: model, onHome: { self.game = nil })
-                        case .theory: TheoryView(model: theory, onHome: { self.game = nil })
+                        case .mix: ContentView(model: model, onHome: { open(nil) })
+                        case .theory: TheoryView(model: theory, onHome: { open(nil) })
                         }
                     }
-                    .themed(.sketchbook)
+                    .transition(.move(edge: .trailing))
+                    .zIndex(1)
                 }
-                .themed(.sketchbook)
+            }
+            .themed(.sketchbook)
         }
+    }
+
+    private func open(_ game: Game?) {
+        withAnimation(.smooth(duration: 0.35)) { self.game = game }
     }
 
     /// CI screenshots open straight into a game: theory demos into Color Theory, the rest into mixing.
