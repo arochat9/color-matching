@@ -3,6 +3,7 @@ import SwiftUI
 /// Pick which tubes are on your palette, and whether to get one extra tube per goal.
 struct PaletteView: View {
     @ObservedObject var model: GameModel
+    @AppStorage("showWarnings") private var showWarnings = true
     @Environment(\.dismiss) private var dismiss
     @Environment(\.theme) private var theme
 
@@ -17,6 +18,14 @@ struct PaletteView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Add a tube when needed")
                             Text("When your paints can't get close to a goal, the tube that helps most joins them for that round.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Toggle(isOn: $showWarnings) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Mixing warnings")
+                            Text("Warns you when a goal can't be mixed, or when your mix has gone too far to come back.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

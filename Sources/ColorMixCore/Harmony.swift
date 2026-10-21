@@ -242,12 +242,13 @@ private extension RandomNumberGenerator {
     }
 }
 
-/// "Which of these five fits the set?": the set is a harmony with one member missing.
+/// "Which of these five fits the set?": the set is a harmony with one member missing, and all five
+/// options come from the missing color's hue family (five greens, say), so you have to find the right shade.
 public struct FitPuzzle: Sendable {
     public enum Kind: Sendable {
         /// Completes the harmony in the set's tone.
         case answer
-        /// Right tone, but its hue fits no harmony with the set.
+        /// Right tone, but its hue is off enough to fit no harmony with the set.
         case offHue
         /// Right hue, but a clashing tone.
         case offTone
@@ -265,9 +266,13 @@ public struct FitPuzzle: Sendable {
     public let options: [Option]
 
     public var answer: Option { options.first { $0.kind == .answer }! }
+    /// The hue family every option comes from.
+    public var family: HueFamily { HueFamily.nearest(to: answer.color.hue) }
 
     /// Any hue this far from every harmony with the set counts as not fitting.
-    static let offHueMinimum: Double = 22
+    static let offHueMinimum: Double = 18
+    /// How far an off hue sits from the answer and from each other, so the options look different.
+    static let offHueSpacing: Double = 15
 
     public static func make<R: RandomNumberGenerator>(using rng: inout R) -> FitPuzzle {
         while true {
@@ -285,18 +290,24 @@ public struct FitPuzzle: Sendable {
         let shown = hues.shuffled(using: &rng).map { rng.jittered(tone, hue: $0) }
 
         let answer = tone.color(hue: answerHue)
+        let family = HueFamily.nearest(to: answerHue)
+        // Two in the right hue but a clashing tone (every tone clashes with at least two others).
         let clashing = Tone.allCases.filter { $0.color(hue: 0).toneDistance(to: tone.color(hue: 0)) >= 0.4 }
-        let offTone = clashing.randomElement(using: &rng)!.color(hue: answerHue)
+        let offTones = clashing.shuffled(using: &rng).prefix(2).map { $0.color(hue: answerHue + Double.random(in: -6...6, using: &rng)) }
 
+        // Two in the right tone, with a hue from the same family that's off enough to fit no harmony.
         var offHues: [Double] = []
-        for _ in 0..<300 where offHues.count < 3 {
-            let hue = Double.random(in: 0..<360, using: &rng)
-            guard (offHues + [answerHue]).allSatisfy({ ColorWheel.distance($0, hue) >= 25 }) else { continue }
+        for _ in 0..<300 where offHues.count < 2 {
+            let hue = Double.random(in: family.range, using: &rng)
+            guard ColorWheel.distance(hue, answerHue) >= offHueMinimum + 4,
+                  offHues.allSatisfy({ ColorWheel.distance($0, hue) >= offHueSpacing }) else { continue }
             if Harmony.bestFit(hues: shown.map(\.hue) + [hue]).error >= offHueMinimum { offHues.append(hue) }
         }
-        guard offHues.count == 3 else { return nil }
+        guard offHues.count == 2 else { return nil }
 
-        let colors: [(WheelColor, Kind)] = [(answer, .answer), (offTone, .offTone)] + offHues.map { (tone.color(hue: $0), .offHue) }
+        let colors: [(WheelColor, Kind)] = [(answer, .answer)]
+            + offTones.map { ($0, .offTone) }
+            + offHues.map { (tone.color(hue: $0), .offHue) }
         let options = colors.shuffled(using: &rng).enumerated().map { Option(id: $0.offset, color: $0.element.0, kind: $0.element.1) }
         return FitPuzzle(rule: rule, tone: tone, shown: shown, options: options)
     }
@@ -308,7 +319,7 @@ public struct FitPuzzle: Sendable {
         case .answer:
             return "\(name) completes a \(rule.title.lowercased()) set: \(rule.summary). It's also \(tone.description), like the others."
         case .offHue:
-            return "\(name) has the right tone, but its hue doesn't line up with these on the wheel, so it fits no harmony."
+            return "\(name) has the right tone, but its hue is a little off: it doesn't line up with these on the wheel, so it fits no harmony."
         case .offTone:
             return "\(name) is the right hue, but it's \(Tone.nearest(to: option.color).description) while the set is \(tone.description)."
         }
@@ -385,6 +396,10 @@ public struct HueGrade: Sendable {
     public let tips: [String]
     /// Another harmony your pick happens to make with the set.
     public let alsoFits: HarmonyRule?
+
+    /// The score that counts toward your streak.
+    public static let passing: Double = 90
+    public var passes: Bool { percent >= HueGrade.passing }
 }
 
 private extension String {

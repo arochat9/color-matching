@@ -4,20 +4,10 @@ import SwiftUI
 struct ColorMatchApp: App {
     @StateObject private var model = ColorMatchApp.makeModel()
     @StateObject private var theory = ColorMatchApp.makeTheoryModel()
-    @State private var game = ColorMatchApp.demoGame
 
     var body: some Scene {
         WindowGroup {
-            HomeView(model: model, theory: theory, onPlay: { game = $0 }, howTo: ColorMatchApp.demoHowTo)
-                .fullScreenCover(item: $game) { game in
-                    Group {
-                        switch game {
-                        case .mix: ContentView(model: model, onHome: { self.game = nil })
-                        case .theory: TheoryView(model: theory, onHome: { self.game = nil })
-                        }
-                    }
-                    .themed(.sketchbook)
-                }
+            RootView(model: model, theory: theory, game: ColorMatchApp.demoGame, howTo: ColorMatchApp.demoHowTo)
                 .themed(.sketchbook)
         }
     }
@@ -49,8 +39,10 @@ struct ColorMatchApp: App {
             let target = model.huePuzzle.target
             model.pick = WheelColor(hue: target.hue + 14, saturation: target.saturation - 0.15, brightness: target.brightness + 0.05)
             if demo == "theory-hue-answered" { model.submitHue() }
-        } else if demo == "theory-fit-answered", let wrong = model.fitPuzzle.options.first(where: { $0.kind == .offTone }) {
-            model.choose(wrong)
+        } else if let wrong = model.fitPuzzle.options.first(where: { $0.kind == .offTone }) {
+            // A wrong pick being tried, so the screenshot shows the preview; "answered" confirms it.
+            model.select(wrong)
+            if demo == "theory-fit-answered" { model.confirmFit() }
         }
         return model
     }
@@ -94,5 +86,34 @@ struct ColorMatchApp: App {
             model.submit()
         }
         return model
+    }
+}
+
+/// Home, with the open game sliding in from the right over it. Kept in a view (not the App) so the slide animates.
+private struct RootView: View {
+    @ObservedObject var model: GameModel
+    @ObservedObject var theory: TheoryModel
+    @State var game: Game?
+    let howTo: Game?
+
+    var body: some View {
+        ZStack {
+            HomeView(model: model, theory: theory, onPlay: { open($0) }, howTo: howTo)
+            if let game {
+                Group {
+                    switch game {
+                    case .mix: ContentView(model: model, onHome: { open(nil) })
+                    case .theory: TheoryView(model: theory, onHome: { open(nil) })
+                    }
+                }
+                .transition(.move(edge: .trailing))
+                .zIndex(1)
+            }
+        }
+        .animation(.smooth(duration: 0.35), value: game)
+    }
+
+    private func open(_ game: Game?) {
+        withAnimation(.smooth(duration: 0.35)) { self.game = game }
     }
 }

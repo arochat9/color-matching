@@ -41,8 +41,9 @@ The home page offers two games, **Mix to Match** (above) and **Color Theory** (b
 
 A separate game for color harmony, taught on the painter's (red-yellow-blue) wheel, where red sits opposite green:
 
-- **Best fit**: a set of colors is a harmony with one color missing. Pick which of five options belongs.
-  One option has the right hue but a clashing tone (too bright for a soft set, say), so tone counts too.
+- **Best fit**: a set of colors is a harmony with one color missing, and all five options come from the missing color's
+  hue family (five greens, say). Tap an option to try it in the set, then confirm the one that belongs. Two options
+  have the right hue but a clashing tone, and two have the right tone but a hue a little off the harmony.
 - **Find the hue**: a set with one color missing, and a color picker limited to one hue family ("find the
   green that fits"). You're scored on hue and tone, with tips like "12° too far toward blue-green".
 

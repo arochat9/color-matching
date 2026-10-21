@@ -16,9 +16,11 @@ final class TheoryModel: ObservableObject {
     @Published var mode: Mode = .fit
 
     @Published private(set) var fitPuzzle: FitPuzzle
-    /// The option you tapped, once you've answered.
+    /// The option you're trying in the set. Nothing counts until you confirm it.
+    @Published private(set) var fitSelection: FitPuzzle.Option?
+    /// The option you confirmed, once you've answered.
     @Published private(set) var fitPick: FitPuzzle.Option?
-    /// Best-fit answers in a row.
+    /// Answers in a row that count: a right best fit, or a hue at `HueGrade.passing` or better.
     @Published private(set) var streak = 0
 
     @Published private(set) var huePuzzle: HuePuzzle
@@ -41,19 +43,29 @@ final class TheoryModel: ObservableObject {
         WheelColor(hue: puzzle.family.center, saturation: 0.5, brightness: 0.75)
     }
 
-    func choose(_ option: FitPuzzle.Option) {
+    /// Tries an option in the set's empty slot; tapping it again takes it back out.
+    func select(_ option: FitPuzzle.Option) {
         guard fitPick == nil else { return }
+        fitSelection = fitSelection?.id == option.id ? nil : option
+    }
+
+    /// Locks in the selected option.
+    func confirmFit() {
+        guard fitPick == nil, let option = fitSelection else { return }
         fitPick = option
         streak = option.kind == .answer ? streak + 1 : 0
     }
 
     func nextFit() {
+        fitSelection = nil
         fitPick = nil
         fitPuzzle = FitPuzzle.make(using: &rng)
     }
 
     func submitHue() {
-        hueGrade = huePuzzle.grade(pick)
+        let grade = huePuzzle.grade(pick)
+        hueGrade = grade
+        streak = grade.passes ? streak + 1 : 0
     }
 
     func nextHue() {
