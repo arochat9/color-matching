@@ -83,6 +83,14 @@ final class SolverTests: XCTestCase {
         XCTAssertLessThan(solved.simplest.deltaE, 1)
     }
 
+    func testFindsADropOfBlackInABigPile() {
+        // Far finer than the coarse search's ratios: only the drop-by-drop refinement finds it.
+        let source = Recipe([Ingredient(paint: .cadmiumYellow, parts: 60), Ingredient(paint: .ivoryBlack, parts: 1)])
+        let solved = RecipeSolver().solve(for: source.color!, palette: DynamicPalette.core)!
+        XCTAssertLessThan(solved.closest.deltaE, 1)
+        XCTAssertLessThanOrEqual(solved.closest.recipe.totalParts, RecipeSolver.maxPileParts)
+    }
+
     func testGeneratedChallengesAreSolvable() {
         var rng = SplitMix64(seed: 42)
         for _ in 0..<5 {
