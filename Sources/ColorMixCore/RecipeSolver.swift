@@ -42,12 +42,12 @@ public struct RecipeSolver: Sendable {
         let bands = Spectral.bandCount
         var mixed = [Double](repeating: 0, count: bands)
 
-        func deltaE(_ indices: [Int], _ parts: [Int]) -> Double {
+        func deltaE(_ indices: [Int], _ parts: [Double]) -> Double {
             var total = 0.0
-            for j in indices.indices { total += Double(parts[j]) * palette[indices[j]].strength }
+            for j in indices.indices { total += parts[j] * palette[indices[j]].strength }
             for i in 0..<bands { mixed[i] = 0 }
             for j in indices.indices {
-                let share = Double(parts[j]) * palette[indices[j]].strength / total
+                let share = parts[j] * palette[indices[j]].strength / total
                 let paintKS = ks[indices[j]]
                 for i in 0..<bands { mixed[i] += share * paintKS[i] }
             }
@@ -71,7 +71,7 @@ public struct RecipeSolver: Sendable {
             for indices in combinations(of: palette.count, choose: k) {
                 var bestHere: Candidate?
                 forEachComposition(count: k, maxTotal: limit) { parts in
-                    let dE = deltaE(indices, parts)
+                    let dE = deltaE(indices, parts.map(Double.init))
                     if dE < (bestHere?.deltaE ?? .infinity) { bestHere = (dE, indices, parts) }
                 }
                 guard let bestHere else { continue }
@@ -93,50 +93,50 @@ public struct RecipeSolver: Sendable {
         return result
     }
 
-    /// Hill-climbs one combination's ratio in whole drops: scales the pile up to `maxPileParts`, then keeps
-    /// moving drops in, out, or from one paint to another while that gets closer. Every paint keeps at least one drop.
+    /// Fine-tunes one combination's ratio: first freely, by growing or shrinking one paint at a time (so it can
+    /// walk from 23:1 to 60:1), then rounds that ratio to whole drops in every pile size up to `maxPileParts`.
+    /// Every paint keeps at least one drop.
     private func refine(
         _ start: (deltaE: Double, indices: [Int], parts: [Int]),
-        deltaE: ([Int], [Int]) -> Double
+        deltaE: ([Int], [Double]) -> Double
     ) -> (deltaE: Double, indices: [Int], parts: [Int]) {
         let cap = RecipeSolver.maxPileParts
         let indices = start.indices
-        let scale = max(cap / start.parts.reduce(0, +), 1)
-        var parts = start.parts.map { $0 * scale }
-        var current = deltaE(indices, parts)
-        if start.deltaE < current { parts = start.parts; current = start.deltaE }
-
-        for step in [8, 4, 2, 1] {
-            var improved = true
-            var rounds = 0
-            while improved && rounds < 200 {
-                improved = false
-                rounds += 1
-                var moves: [[Int]] = []
-                for j in parts.indices {
-                    for d in [step, -step] {
-                        var p = parts
-                        p[j] += d
-                        moves.append(p)
-                    }
-                    for i in parts.indices where i != j {
-                        var p = parts
-                        p[j] += step
-                        p[i] -= step
-                        moves.append(p)
-                    }
-                }
-                for p in moves where p.allSatisfy({ $0 >= 1 }) && p.reduce(0, +) <= cap {
-                    let dE = deltaE(indices, p)
-                    if dE < current - 1e-6 {
-                        current = dE
-                        parts = p
-                        improved = true
+        let factors: [Double] = [4, 2, 1.4, 1.15, 1.05, 1.015]
+        var amounts = start.parts.map(Double.init)
+        var current = start.deltaE
+        for _ in 0..<80 {
+            var improved = false
+            for j in amounts.indices {
+                for f in factors {
+                    for factor in [f, 1 / f] {
+                        var trial = amounts
+                        trial[j] *= factor
+                        // No paint can be under one drop of the biggest pile.
+                        let total = trial.reduce(0, +)
+                        guard trial.allSatisfy({ $0 / total >= 1 / Double(cap) }) else { continue }
+                        let dE = deltaE(indices, trial)
+                        if dE < current - 1e-6 {
+                            current = dE
+                            amounts = trial
+                            improved = true
+                        }
                     }
                 }
             }
+            if !improved { break }
         }
-        return (current, indices, parts)
+
+        var best = start
+        let total = amounts.reduce(0, +)
+        for pile in indices.count...cap {
+            let parts = amounts.map { max(1, Int(($0 / total * Double(pile)).rounded())) }
+            guard parts.reduce(0, +) <= cap else { continue }
+            let dE = deltaE(indices, parts.map(Double.init))
+            // Strictly better only, so the smallest pile wins a tie.
+            if dE < best.deltaE - 1e-6 { best = (dE, indices, parts) }
+        }
+        return best
     }
 
     /// The closest recipe overall, and the simplest one that is within `tolerance` of it.
