@@ -8,8 +8,8 @@ public struct Solution: Hashable, Sendable {
 
 /// Finds the fewest paints, and the ratio between them, that reproduce a target color.
 ///
-/// It tries every combination of 1 to `maxPaints` paints from the palette at a coarse ratio, then refines the
-/// most promising ones drop by drop in a pile of up to 100 parts, so the answers are recipes you could
+/// It tries every combination of 1 to `maxPaints` paints from the palette at a coarse ratio, then refines each
+/// one drop by drop in a pile of up to 100 parts, so the answers are recipes you could
 /// actually measure out, including a drop of black in a big pile.
 public struct RecipeSolver: Sendable {
     public var maxPaints: Int
@@ -32,10 +32,8 @@ public struct RecipeSolver: Sendable {
     }
 
     /// The biggest pile a recipe may call for. Real paint has no cap, and a drop of black in a big pile of
-    /// yellow is a real recipe, so after the coarse search the best candidates are refined up to this.
+    /// yellow is a real recipe, so after the coarse search every combination is refined up to this.
     public static let maxPileParts = 100
-    /// How many paint combinations per recipe size get refined.
-    static let refinedCandidates = 8
 
     /// The best recipe for each number of paints, keyed by paint count.
     public func bestByPaintCount(for target: SRGB, palette: [Paint]) -> [Int: Solution] {
@@ -79,9 +77,9 @@ public struct RecipeSolver: Sendable {
                 guard let bestHere else { continue }
                 shortlist[k, default: []].append(bestHere)
             }
-            // Fine pass: nudge the most promising combinations drop by drop, in a pile of up to `maxPileParts`.
-            let promising = (shortlist[k] ?? []).sorted { $0.deltaE < $1.deltaE }.prefix(RecipeSolver.refinedCandidates)
-            for candidate in promising {
+            // Fine pass: nudge every combination drop by drop, in a pile of up to `maxPileParts`. The coarse
+            // ranking can't be trusted here: 23 yellow to 1 black looks hopeless, while 60 to 1 is spot on.
+            for candidate in shortlist[k] ?? [] {
                 let refined = k == 1 ? candidate : refine(candidate, deltaE: deltaE)
                 if refined.deltaE < (best[k]?.deltaE ?? .infinity) { best[k] = refined }
             }
