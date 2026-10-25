@@ -83,6 +83,14 @@ final class SolverTests: XCTestCase {
         XCTAssertLessThan(solved.simplest.deltaE, 1)
     }
 
+    func testFindsADropOfBlackInABigPile() {
+        // Far finer than the coarse search's ratios: only the drop-by-drop refinement finds it.
+        let source = Recipe([Ingredient(paint: .cadmiumYellow, parts: 60), Ingredient(paint: .ivoryBlack, parts: 1)])
+        let solved = RecipeSolver().solve(for: source.color!, palette: DynamicPalette.core)!
+        XCTAssertLessThan(solved.closest.deltaE, 1)
+        XCTAssertLessThanOrEqual(solved.closest.recipe.totalParts, RecipeSolver.maxPileParts)
+    }
+
     func testGeneratedChallengesAreSolvable() {
         var rng = SplitMix64(seed: 42)
         for _ in 0..<5 {
@@ -192,17 +200,17 @@ final class RecoveryTests: XCTestCase {
         XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: Palette.limited.paints), 3)
     }
 
-    func testTriplingThePileIsTheLimit() {
+    func testAPileOfAHundredCanStillBeSaved() {
         // A screenshot from play: white and black in a cobalt blue. Tripling the pile can't save it,
-        // but about 20 more white and 30 more ultramarine (11 times the pile) would.
+        // but about 20 more white and 30 more ultramarine (11 times the pile) would, and that's within 100 drops.
         let target = SRGB(hex: "#1F4FA8")!
         let current = Recipe([
             Ingredient(paint: .titaniumWhite, parts: 1), Ingredient(paint: .ivoryBlack, parts: 1),
             Ingredient(paint: .phthaloBlue, parts: 2), Ingredient(paint: .ultramarineBlue, parts: 1),
         ])
         let palette = DynamicPalette.core + [Paint.ultramarineBlue]
-        XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: palette), 3)
-        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: palette, maxGrowth: 12), 3)
+        XCTAssertGreaterThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: palette, maxPile: 0), 3)
+        XCTAssertLessThan(RecipeSolver.bestDeltaEByAdding(to: current, target: target, palette: palette), 3)
     }
 
     func testLightGraysAndPastelsAreInReach() {

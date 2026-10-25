@@ -194,6 +194,9 @@ public extension Palette {
 public enum DynamicPalette {
     public static let core: [Paint] = [.titaniumWhite, .ivoryBlack, .cadmiumYellow, .cadmiumRed, .phthaloBlue, .quinacridoneMagenta]
 
+    /// The tubes a new palette starts with: the core plus ultramarine, the most common seventh tube.
+    public static let starter: [Paint] = core + [.ultramarineBlue]
+
     /// Candidates for the seventh tube.
     public static let extras: [Paint] = [
         .ultramarineBlue, .cadmiumOrange, .alizarinCrimson, .yellowOchre, .burntSienna, .permanentRose, .naplesYellow,

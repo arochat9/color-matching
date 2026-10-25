@@ -22,9 +22,9 @@ While you mix, the app warns you when:
 The swatch button (top right) opens the **color library**: every named color, grouped by hue and searchable.
 Tap one to practice mixing it. Practice rounds don't earn stars.
 
-Your palette is a fixed core of titanium white, ivory black, cadmium yellow, cadmium red, phthalo blue
-and quinacridone magenta. When those can't get close to a goal, one more tube joins for that round
-(ultramarine, cadmium orange, alizarin crimson, yellow ochre, burnt sienna, viridian, ...), marked
+Your palette starts with titanium white, ivory black, cadmium yellow, cadmium red, phthalo blue,
+quinacridone magenta and ultramarine blue. When those can't get close to a goal, one more tube joins for that round
+(cadmium orange, alizarin crimson, yellow ochre, burnt sienna, viridian, ...), marked
 "Added for this color". About half the goals need it.
 That's how painters work: a small everyday palette and a specialty tube when a subject needs it.
 It can reach about 93% of the painter colors.
