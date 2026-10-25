@@ -4,6 +4,12 @@ public struct Solution: Hashable, Sendable {
     public let recipe: Recipe
     public let color: SRGB
     public let deltaE: Double
+
+    public init(recipe: Recipe, color: SRGB, deltaE: Double) {
+        self.recipe = recipe
+        self.color = color
+        self.deltaE = deltaE
+    }
 }
 
 /// Finds the fewest paints, and the ratio between them, that reproduce a target color.
@@ -153,8 +159,10 @@ public struct RecipeSolver: Sendable {
 public extension RecipeSolver {
     /// The closest you can get to `target` by only *adding* paint to `current`, the way real paint works:
     /// once it's on the palette you can't take it back out. Tries adding up to three paints, from a dab up to
-    /// whatever keeps the pile within `maxGrowth` times its size. Returns the best ΔE2000.
-    static func bestDeltaEByAdding(to current: Recipe, target: SRGB, palette: [Paint], maxGrowth: Double = 3) -> Double {
+    /// a pile of `maxPile` parts, or `maxGrowth` times its size once it's bigger than that. Returns the best ΔE2000.
+    static func bestDeltaEByAdding(
+        to current: Recipe, target: SRGB, palette: [Paint], maxGrowth: Double = 3, maxPile: Int = RecipeSolver.maxPileParts
+    ) -> Double {
         let targetLab = target.lab
         let bands = Spectral.bandCount
         let ks = palette.map { $0.reflectance.map(Mixer.kOverS) }
@@ -168,7 +176,7 @@ public extension RecipeSolver {
         }
         guard baseWeight > 0 else { return .infinity }
         let pile = Double(current.totalParts)
-        let budget = pile * (maxGrowth - 1)
+        let budget = max(pile * (maxGrowth - 1), Double(maxPile) - pile)
         let amounts = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5, 0.75, 1].map { $0 * budget }
 
         var best = Double.infinity

@@ -31,15 +31,15 @@ struct PaletteView: View {
                         }
                     }
                 }
-                section("Basics", paints: DynamicPalette.core)
-                section("Specialty tubes", paints: DynamicPalette.extras)
+                section("Basics", paints: DynamicPalette.starter)
+                section("Specialty tubes", paints: DynamicPalette.extras.filter { !DynamicPalette.starter.contains($0) })
             }
             .scrollContentBackground(.hidden)
             .navigationTitle("Your paints")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Reset") { model.tubeIDs = Set(DynamicPalette.core.map(\.id)) }
+                    Button("Reset") { model.tubeIDs = Set(DynamicPalette.starter.map(\.id)) }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
