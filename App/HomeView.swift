@@ -48,7 +48,7 @@ struct HomeView: View {
                     onHowTo: { howTo = .mix }
                 ) {
                     HStack(spacing: -10) {
-                        ForEach(DynamicPalette.core) { paint in
+                        ForEach(DynamicPalette.starter) { paint in
                             PaintBlob(seed: paint.blobSeed)
                                 .fill(paint.color.swiftUIColor)
                                 .overlay(PaintBlob(seed: paint.blobSeed).stroke(.primary.opacity(0.18), lineWidth: 1))

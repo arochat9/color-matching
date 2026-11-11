@@ -24,6 +24,7 @@ final class GameModel: ObservableObject {
 
     static let tubesKey = "paletteTubes"
     static let autoExtraKey = "autoExtraTube"
+    static let starterMigratedKey = "paletteHasUltramarine"
 
     /// The tubes you've put on your palette (ids from `DynamicPalette.allPaints`).
     @Published var tubeIDs: Set<String> {
@@ -95,8 +96,16 @@ final class GameModel: ObservableObject {
         let defaults = UserDefaults.standard
         var rng = SplitMix64(seed: seed ?? UInt64.random(in: 0...UInt64.max))
         let all = Set(DynamicPalette.allPaints.map(\.id))
-        let saved = (defaults.stringArray(forKey: GameModel.tubesKey) ?? []).filter(all.contains)
-        let tubes = saved.count >= 2 ? Set(saved) : Set(DynamicPalette.core.map(\.id))
+        var saved = (defaults.stringArray(forKey: GameModel.tubesKey) ?? []).filter(all.contains)
+        // Palettes saved as the old six-tube default get ultramarine, now part of the default.
+        if !defaults.bool(forKey: GameModel.starterMigratedKey) {
+            if Set(saved) == Set(DynamicPalette.core.map(\.id)) {
+                saved.append(Paint.ultramarineBlue.id)
+                defaults.set(saved, forKey: GameModel.tubesKey)
+            }
+            defaults.set(true, forKey: GameModel.starterMigratedKey)
+        }
+        let tubes = saved.count >= 2 ? Set(saved) : Set(DynamicPalette.starter.map(\.id))
         let autoExtra = defaults.object(forKey: GameModel.autoExtraKey) as? Bool ?? true
         let base = DynamicPalette.allPaints.filter { tubes.contains($0.id) }
         let palette = GameModel.makePalette(base: base, extra: nil)
@@ -289,6 +298,9 @@ final class GameModel: ObservableObject {
 
     private func finishSubmit(guess: SRGB, solved: (simplest: Solution, closest: Solution)) {
         let match = Scoring.evaluate(target: challenge.target, guess: guess)
+        // Your own mix proves the palette can get at least this close, even when the search missed it.
+        let mine = Solution(recipe: currentRecipe.sorted, color: guess, deltaE: match.deltaE)
+        let closest = mine.deltaE < solved.closest.deltaE ? mine : solved.closest
         // A round can earn at most one point, however many times you resubmit.
         let earned = match.counts && !roundScored && !isPractice
         if earned {
@@ -305,7 +317,7 @@ final class GameModel: ObservableObject {
             guessRecipe: currentRecipe.sorted,
             match: match,
             simplest: solved.simplest,
-            closest: solved.closest,
+            closest: closest,
             scoredPoint: earned,
             isPractice: isPractice
         )
@@ -333,7 +345,7 @@ final class GameModel: ObservableObject {
     /// Piles smaller than this are cheap to start over, so they never get the warning.
     static let noReturnMinParts = 10
 
-    /// The current mix can no longer get to 90% without more than tripling it, though a fresh pile could.
+    /// The current mix can no longer get to 90% within 100 drops (or tripling a bigger pile), though a fresh pile could.
     var isPastPointOfNoReturn: Bool {
         // 90% is ΔE 3. Only when a fresh pile could get there, but adding to this one can't.
         guard currentRecipe.totalParts >= GameModel.noReturnMinParts,
